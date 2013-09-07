@@ -1,0 +1,15 @@
+Name                : PowerCom
+Version             : 0.1
+Cabal-Version       : >= 1.16
+License             : GPL-3
+Author              : Anton Gushcha
+Synopsis            : Simple chat through serial port (zero modem cable)
+Build-Type          : Simple
+License-file        : ../LICENSE
+
+Executable PowerCom
+    Build-Depends       : base, gtk
+    Main-Is             : Main.hs
+    Hs-Source-Dirs      : powercom
+    Default-Language    : Haskell2010
+    
