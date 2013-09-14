@@ -24,12 +24,12 @@ import Control.Applicative
 import Control.Monad
 
 menuBarDescr
-    = [ ("_Файл", [ ("_Открыть историю",    Nothing)
-                  , ("_Сохранить историю",  Nothing)
+    = [ ("_Файл", [ ("_Открыть историю",    Just loadHistoryDialog)
+                  , ("_Сохранить историю",  Just saveHistoryDialog)
                   , ("_Выход",              Just mainQuit)
                   ]
         )
-      , ("_Помощь",  [ ("_О программе", Nothing)
+      , ("_Помощь",  [ ("_О программе", Just createAboutDialog)
                   ]
         )
       ]
@@ -43,6 +43,45 @@ commandBarDescr optionDialog
       , ("О_тключиться",  Nothing)
       ]
       
+createAboutDialog = do dialog <- aboutDialogNew 
+                       set dialog [aboutDialogName      := "О программе"
+                                  ,aboutDialogVersion   := "1.0"
+                                  ,aboutDialogCopyright := "Copyright 2013 Гуща Антон, Нардид Анатолий, Оганян Левон"
+                                  ,aboutDialogComments  := "Программа для общения пользователей рабочих станций, соединенный нуль модемным кабелем RS-232C."
+                                  ,aboutDialogLicense   := Just license]
+                       dialog `on` response $ \respId -> widgetHideAll dialog
+                       widgetShowAll dialog 
+                       return ()
+ 
+license = "PowerCom is free software: you can redistribute it and/or modify\n\
+\it under the terms of the GNU General Public License as published by\n\
+\the Free Software Foundation, either version 3 of the License, or\n\
+\(at your option) any later version.\n\
+\\n\
+\PowerCom is distributed in the hope that it will be useful,\n\
+\but WITHOUT ANY WARRANTY; without even the implied warranty of\n\
+\MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\
+\GNU General Public License for more details.\n\
+\\n\
+\You should have received a copy of the GNU General Public License\n\
+\along with PowerCom.  If not, see <http://www.gnu.org/licenses/>."
+
+saveHistoryDialog 
+    = do dialog <- fileChooserDialogNew (Just "Сохранить историю") Nothing FileChooserActionSave
+                      [("Сохранить", ResponseAccept)
+                      ,("Отменить", ResponseReject)]
+         dialog `on` response $ \respId -> widgetHideAll dialog 
+         widgetShowAll dialog
+         return ()
+         
+loadHistoryDialog 
+    = do dialog <- fileChooserDialogNew (Just "Открыть историю") Nothing FileChooserActionOpen
+                      [("Открыть", ResponseAccept)
+                      ,("Отменить", ResponseReject)]
+         dialog `on` response $ \respId -> widgetHideAll dialog 
+         widgetShowAll dialog
+         return ()
+
 createMenuBar descr
     = do bar <- menuBarNew
          mapM_ (createMenu bar) descr
