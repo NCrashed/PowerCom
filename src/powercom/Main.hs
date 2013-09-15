@@ -78,9 +78,35 @@ loadHistoryDialog
     = do dialog <- fileChooserDialogNew (Just "Открыть историю") Nothing FileChooserActionOpen
                       [("Открыть", ResponseAccept)
                       ,("Отменить", ResponseReject)]
-         dialog `on` response $ \respId -> widgetHideAll dialog 
+         dialog `on` response $ \respId -> 
+            do case respId of 
+                  ResponseAccept -> viewHistoryDialog =<< fileChooserGetFilename dialog
+                  ResponseReject -> putStrLn "Cancel button pressed!"
+                  ResponseDeleteEvent -> putStrLn "Close button pressed!"
+               widgetHideAll dialog
          widgetShowAll dialog
          return ()
+
+viewHistoryDialog historyName
+    = do dialog <- dialogNew 
+         set dialog [ windowTitle := case historyName of 
+                                        Just name -> name
+                                        Nothing -> "История чата "
+                    , windowDefaultWidth  := 400
+                    , windowDefaultHeight := 400]
+         box <- dialogGetUpper dialog
+         textView <- textViewNew
+         set textView [textViewEditable := False]
+         case historyName of 
+            Just name -> do buffer <- textViewGetBuffer textView
+                            textBufferSetText buffer =<< readFile name
+            Nothing -> return ()
+         scroll <- scrolledWindowNew Nothing Nothing
+         set scroll [containerChild := textView]
+         boxPackStart box scroll PackGrow 0
+         dialogAddButton dialog "OK" ResponseOk
+         dialog `on` response $ \respId -> widgetHideAll dialog 
+         widgetShowAll dialog
 
 createMenuBar descr
     = do bar <- menuBarNew
@@ -123,6 +149,7 @@ createCommandArea descr
 createMessageArea =
     do box <- vBoxNew False 5
        textView    <- textViewNew
+       set textView [textViewEditable := False]
        messageEdit <- entryNew
        boxPackStart box textView PackGrow 0
        hbox <- hBoxNew False 5
@@ -193,7 +220,7 @@ createOptionDialog =
                      ,("Скорость:",  toWidget speedCombo)
                      ,("Стоп биты:", toWidget stopBitsCombo)
                      ,("Бит четности:", toWidget parityCombo)
-                     ,("Биты данный", toWidget dataBitsCombo)]
+                     ,("Биты данных:", toWidget dataBitsCombo)]
        
        dialogAddButton dialog "OK" ResponseOk
        dialogAddButton dialog "Cancel" ResponseCancel
