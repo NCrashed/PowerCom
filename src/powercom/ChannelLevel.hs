@@ -13,13 +13,13 @@
 --
 --    You should have received a copy of the GNU General Public License
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
-{-# LANGUAGE TemplateHaskell #-}
 module ChannelLevel (
-    channelLevelTests,
-    FrameClass,
-    toByteString,
-    fromByteString,
-    Frame(..)
+    initChannelLevel,
+    connect,
+    disconnect,
+    changeOptions,
+    sendMessage,
+    prop_toByteString
     ) where
 
 import qualified Data.ByteString as BS
@@ -31,12 +31,14 @@ import Data.Maybe
 import Control.Monad
 import Data.Word 
 
-import qualified Data.Text as DT
 import Data.Binary.Strict.Get
 import Data.Binary.Put
 
+import Control.Concurrent (threadDelay)
+import Control.Monad (forever)
+import Control.Distributed.Process
+
 import Test.QuickCheck
-import Test.QuickCheck.All
 
 class (Eq a) => FrameClass a where
     toByteString :: a -> BS.ByteString
@@ -147,10 +149,27 @@ formPair :: [String] -> Maybe (String, String)
 formPair (x1:x2:[]) = Just (x1, x2)
 formPair _          = Nothing
 
+-- Interfacing with layer
+connect :: IO ()
+connect = return ()
+
+disconnect :: IO ()
+disconnect = return ()
+
+changeOptions :: [(String, String)] -> IO ()
+changeOptions ops = return ()
+
+sendMessage :: String -> IO ()
+sendMessage msg = return ()
+
+initChannelLevel :: Process ProcessId
+initChannelLevel = do
+    id <- spawnLocal $ forever $ do
+        liftIO $ threadDelay (1*1000000)
+    return id
+
 -- Testing 
 prop_toByteString :: Frame -> Bool
 prop_toByteString f = case fst $ fromByteString $ toByteString f of 
                         Left  _ -> False
                         Right v -> v == f
-
-channelLevelTests = $quickCheckAll

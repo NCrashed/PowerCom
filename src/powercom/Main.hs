@@ -18,8 +18,24 @@ module Main (main) where
 import ApplicationLevel
 import ChannelLevel
 
-main = do
-  channelLevelTests
-  initApplicationLevel
-  runApplicationDrawLoop
+import Control.Monad (forever)
+import Control.Concurrent (threadDelay)
+import Control.Distributed.Process
+import Control.Distributed.Process.Node
+import Network.Transport.Chan
+import System.Exit
 
+exitMsg :: (ProcessId, String) -> Process ()
+exitMsg (id, msg) = case msg of
+  "exit" -> liftIO exitSuccess
+  _      -> return ()
+
+main = do
+  t <- createTransport
+  node <- newLocalNode t initRemoteTable
+
+  runProcess node $ do 
+    rootId <- getSelfPid
+    channelLevelId <- initChannelLevel
+    appLevelId <- initApplicationLevel rootId channelLevelId
+    forever $ receiveWait [match exitMsg]

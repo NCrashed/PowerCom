@@ -13,17 +13,18 @@
 --
 --    You should have received a copy of the GNU General Public License
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
-module ApplicationLevel (initApplicationLevel, runApplicationDrawLoop) where
+module ApplicationLevel (initApplicationLevel) where
 
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Multiline.TextBuffer
 import Graphics.UI.Gtk.Windows.Dialog
-import System.Hardware.Serialport
+import System.Hardware.Serialport hiding (send)
 import Data.Functor
 import Control.Applicative
 import Control.Monad
 
 import ChannelLevel
+import Control.Distributed.Process
 
 menuBarDescr
     = [ ("_Файл", [ ("_Открыть историю",    Just loadHistoryDialog)
@@ -256,12 +257,18 @@ createOptionDialog =
              comboBoxSetModel combo $ Just store
              return combo
 
-initApplicationLevel :: IO ()
-initApplicationLevel = do
-    initGUI
-    optionDialog <- createOptionDialog
-    mainWindow <- createMainWindow (commandBarDescr optionDialog)
-    widgetShowAll mainWindow
+initApplicationLevel :: ProcessId -> ProcessId -> Process ()
+initApplicationLevel rootId channelId = do
+    spawnLocal $ do
+      thisId <- getSelfPid
+      liftIO $ do 
+        initGUI
+        optionDialog <- createOptionDialog
+        mainWindow <- createMainWindow (commandBarDescr optionDialog)
+        widgetShowAll mainWindow
+        runApplicationDrawLoop
+      send rootId (thisId, "exit")
+    return ()
 
 runApplicationDrawLoop :: IO ()
 runApplicationDrawLoop = mainGUI 
