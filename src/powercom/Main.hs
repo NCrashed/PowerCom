@@ -16,7 +16,6 @@
 module Main (main) where
 
 import ApplicationLevel
-import ChannelLevel
 
 import Control.Monad (forever)
 import Control.Concurrent (threadDelay)
@@ -36,6 +35,5 @@ main = do
 
   runProcess node $ do 
     rootId <- getSelfPid
-    channelLevelId <- initChannelLevel
-    appLevelId <- initApplicationLevel rootId channelLevelId
+    appLevelId <- initApplicationLevel rootId 
     forever $ receiveWait [match exitMsg]

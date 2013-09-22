@@ -36,9 +36,11 @@ import Data.Binary.Put
 
 import Control.Concurrent (threadDelay)
 import Control.Monad (forever)
-import Control.Distributed.Process
 
 import Test.QuickCheck
+
+import PhysicalLevel
+import Control.Distributed.Process
 
 class (Eq a) => FrameClass a where
     toByteString :: a -> BS.ByteString
@@ -162,9 +164,11 @@ changeOptions ops = return ()
 sendMessage :: String -> IO ()
 sendMessage msg = return ()
 
-initChannelLevel :: Process ProcessId
-initChannelLevel = do
+initChannelLevel :: ProcessId -> Process ProcessId
+initChannelLevel appLevel = do
     id <- spawnLocal $ forever $ do
+        thisId <- getSelfPid
+        physLevelId <- initPhysicalLevel thisId
         liftIO $ threadDelay (1*1000000)
     return id
 

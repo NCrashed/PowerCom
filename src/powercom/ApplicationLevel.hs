@@ -257,10 +257,11 @@ createOptionDialog =
              comboBoxSetModel combo $ Just store
              return combo
 
-initApplicationLevel :: ProcessId -> ProcessId -> Process ()
-initApplicationLevel rootId channelId = do
+initApplicationLevel :: ProcessId -> Process ()
+initApplicationLevel rootId = do
     spawnLocal $ do
       thisId <- getSelfPid
+      channelId <- initChannelLevel thisId
       liftIO $ do 
         initGUI
         optionDialog <- createOptionDialog
