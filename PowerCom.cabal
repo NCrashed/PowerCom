@@ -4,8 +4,10 @@ Cabal-Version       : >= 1.16
 License             : GPL-3
 Author              : Anton Gushcha
 Synopsis            : Simple chat through serial port (zero modem cable)
-Build-Type          : Simple
-License-file        : ../LICENSE
+Build-Type          : Custom
+License-file        : ./LICENSE
+
+Data-Files          : views/gui.glade
 
 Test-Suite PowerCom-Test
     Type:       exitcode-stdio-1.0
@@ -18,14 +20,14 @@ Test-Suite PowerCom-Test
                    , binary
                    , binary-strict
                    , QuickCheck >= 2.0
-                   , distributed-process
-                   , distributed-process-simplelocalnet
-                   , network-transport-inmemory
+                   --, distributed-process
+                   --, distributed-process-simplelocalnet
+                   --, network-transport-inmemory
                    , test-framework >= 0.4.1
                    , test-framework-quickcheck2
                    --, test-framework-hunit
 
-    Hs-Source-Dirs      : powercom
+    Hs-Source-Dirs      : src/powercom
     Default-Language    : Haskell2010
 
 Executable PowerCom
@@ -36,11 +38,10 @@ Executable PowerCom
                           , binary
                           , binary-strict
                           , QuickCheck >= 2.0
-                          , distributed-process
-                          , distributed-process-simplelocalnet
-                          , network-transport-inmemory
+                          --, distributed-process
+                          --, distributed-process-simplelocalnet
+                          --, network-transport-inmemory
 
     Main-Is             : Main.hs
-    Hs-Source-Dirs      : powercom
+    Hs-Source-Dirs      : src/powercom
     Default-Language    : Haskell2010
-    Extra-libraries     : ws2_32

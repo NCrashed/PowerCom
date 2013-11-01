@@ -15,25 +15,15 @@
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
 module Main (main) where
 
-import ApplicationLevel
-
-import Control.Monad (forever)
-import Control.Concurrent (threadDelay)
-import Control.Distributed.Process
-import Control.Distributed.Process.Node
-import Network.Transport.Chan
-import System.Exit
-
-exitMsg :: (ProcessId, String) -> Process ()
-exitMsg (id, msg) = case msg of
-  "exit" -> liftIO exitSuccess
-  _      -> return ()
+import Paths_PowerCom
+import Graphics.UI.Gtk
+import Graphics.UI.Gtk.Builder
 
 main = do
-  t <- createTransport
-  node <- newLocalNode t initRemoteTable
-
-  runProcess node $ do 
-    rootId <- getSelfPid
-    appLevelId <- initApplicationLevel rootId 
-    forever $ receiveWait [match exitMsg]
+    initGUI
+    builder <- builderNew
+    builderAddFromFile builder =<< getDataFileName "views/gui.glade"
+    mainWindow <- builderGetObject builder castToWindow "MainWindow"
+    onDestroy mainWindow mainQuit
+    widgetShowAll mainWindow
+    mainGUI

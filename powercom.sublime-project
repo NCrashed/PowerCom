@@ -1,0 +1,35 @@
+{
+	"folders":
+	[
+		{
+			"path": "src"
+		},
+		{
+			"path": "/home/ncrashed/dev/haskell/PowerCom"
+		}
+	],
+    "build_systems":
+    [
+        {
+            "name": "Cabal",
+            "working_dir": "$project_path",
+            "cmd": ["cabal", "install"],
+
+            "variants": 
+            [
+                { 
+                    "name": "Cabal tests",
+                    "working_dir": "$project_path",
+                    "linux":
+                    {
+                        "cmd": ["sh", "./testsbuild"]
+                    },
+                    "windows":
+                    {
+                        "cmd": ["testsbuild.bat"]
+                    }
+                }
+            ]            
+        }
+    ]
+}
