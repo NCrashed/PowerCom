@@ -289,13 +289,7 @@
       </object>
     </child>
   </object>
-  <object class="GtkListStore" id="ParityBitModel">
-    <columns>
-      <!-- column-name ParityBit -->
-      <column type="gtkchararray"/>
-    </columns>
-  </object>
-  <object class="GtkDialog" id="OptionDialog ">
+  <object class="GtkDialog" id="OptionDialog">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
     <property name="title" translatable="yes">Свойства</property>
@@ -305,7 +299,7 @@
     <property name="destroy_with_parent">True</property>
     <property name="type_hint">dialog</property>
     <child internal-child="vbox">
-      <object class="GtkVBox" id="OptionDialog">
+      <object class="GtkVBox" id="OptionDialogVBox">
         <property name="can_focus">False</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
@@ -410,22 +404,6 @@
               </packing>
             </child>
             <child>
-              <object class="GtkComboBox" id="PortNameCombo">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="model">PortNameModel</property>
-                <child>
-                  <object class="GtkCellRendererText" id="cellrenderertext2"/>
-                  <attributes>
-                    <attribute name="text">0</attribute>
-                  </attributes>
-                </child>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkEntry" id="UserNameEntry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -444,13 +422,6 @@
               <object class="GtkComboBox" id="SpeedCombo">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="model">SpeedModel</property>
-                <child>
-                  <object class="GtkCellRendererText" id="cellrenderertext3"/>
-                  <attributes>
-                    <attribute name="text">0</attribute>
-                  </attributes>
-                </child>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -461,7 +432,6 @@
               <object class="GtkComboBox" id="StopBitCombo">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="model">StopBitModel</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -472,7 +442,6 @@
               <object class="GtkComboBox" id="ParityBitCombo">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="model">ParityBitModel</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -483,11 +452,25 @@
               <object class="GtkComboBox" id="WordBitCombo">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="model">WordBitModel</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="PortNameEntry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="invisible_char">●</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
               </packing>
             </child>
           </object>
@@ -500,27 +483,9 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">OkButton</action-widget>
-      <action-widget response="0">CancelButton</action-widget>
+      <action-widget response="1">OkButton</action-widget>
+      <action-widget response="2">CancelButton</action-widget>
     </action-widgets>
-  </object>
-  <object class="GtkListStore" id="PortNameModel">
-    <columns>
-      <!-- column-name PortName -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="SpeedModel">
-    <columns>
-      <!-- column-name PortSpeed -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="StopBitModel">
-    <columns>
-      <!-- column-name StopBit -->
-      <column type="gtkchararray"/>
-    </columns>
   </object>
   <object class="GtkListStore" id="UserNameStore">
     <columns>
@@ -528,18 +493,6 @@
       <column type="gchararray"/>
       <!-- column-name Username -->
       <column type="gchararray"/>
-    </columns>
-    <data>
-      <row>
-        <col id="0" translatable="yes">comotron-user</col>
-        <col id="1" translatable="yes">NCrashed</col>
-      </row>
-    </data>
-  </object>
-  <object class="GtkListStore" id="WordBitModel">
-    <columns>
-      <!-- column-name WordBitModel -->
-      <column type="gtkchararray"/>
     </columns>
   </object>
   <object class="GtkImage" id="image1">

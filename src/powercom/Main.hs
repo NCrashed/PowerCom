@@ -16,14 +16,7 @@
 module Main (main) where
 
 import Paths_PowerCom
-import Graphics.UI.Gtk
-import Graphics.UI.Gtk.Builder
+import Application.Layer
 
-main = do
-    initGUI
-    builder <- builderNew
-    builderAddFromFile builder =<< getDataFileName "views/gui.glade"
-    mainWindow <- builderGetObject builder castToWindow "MainWindow"
-    onDestroy mainWindow mainQuit
-    widgetShowAll mainWindow
-    mainGUI
+main = initApplicationLayer =<< getDataFileName "views/gui.glade"
+    
