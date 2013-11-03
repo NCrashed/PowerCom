@@ -29,6 +29,7 @@ viewIcons = [ "comotron-connect.png"
 copyIcons :: Args -> InstallFlags -> PackageDescription -> LocalBuildInfo -> IO ()
 copyIcons args instFlags descr info = do 
     userDir <- getHomeDirectory
+    createDirectoryIfMissing True $ userDir ++ "/.icons"
     mapM_ (copyIcon userDir) viewIcons
     where
         copyIcon :: FilePath -> FilePath -> IO ()

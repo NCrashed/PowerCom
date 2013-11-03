@@ -1,35 +1,43 @@
 {
+	"build_systems":
+	[
+		{
+			"cmd":
+			[
+				"cabal",
+				"install"
+			],
+			"name": "Cabal",
+			"variants":
+			[
+				{
+					"linux":
+					{
+						"cmd":
+						[
+							"sh",
+							"./testsbuild"
+						]
+					},
+					"name": "Cabal tests",
+					"windows":
+					{
+						"cmd":
+						[
+							"testsbuild.bat"
+						]
+					},
+					"working_dir": "$project_path"
+				}
+			],
+			"working_dir": "$project_path"
+		}
+	],
 	"folders":
 	[
 		{
+			"follow_symlinks": true,
 			"path": "src"
-		},
-		{
-			"path": "/home/ncrashed/dev/haskell/PowerCom"
 		}
-	],
-    "build_systems":
-    [
-        {
-            "name": "Cabal",
-            "working_dir": "$project_path",
-            "cmd": ["cabal", "install"],
-
-            "variants": 
-            [
-                { 
-                    "name": "Cabal tests",
-                    "working_dir": "$project_path",
-                    "linux":
-                    {
-                        "cmd": ["sh", "./testsbuild"]
-                    },
-                    "windows":
-                    {
-                        "cmd": ["testsbuild.bat"]
-                    }
-                }
-            ]            
-        }
-    ]
+	]
 }
