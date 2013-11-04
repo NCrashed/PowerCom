@@ -23,6 +23,9 @@ import Application.Types
 import System.Hardware.Serialport
 import Data.Word 
 import Data.Functor
+import Data.Data
+import Data.List
+import Data.IORef
 
 createEnumCombo combo descr = do
     store <- listStoreNew descr
@@ -32,6 +35,38 @@ createEnumCombo combo descr = do
         \text -> [cellText := text]
     comboBoxSetModel combo $ Just store
     return combo
+
+defaultOptions :: ChannelOptions
+defaultOptions = ChannelOptions
+        {
+          portName       = "COM1"
+        , userName       = "Username"
+        , portSpeed      = CS2400
+        , portStopBits   = Two
+        , portParityBits = NoParity 
+        , portWordBits   = 7
+        }
+
+setupDefaultOptions :: Builder -> IO ChannelOptions
+setupDefaultOptions builder = do
+    portNameEntry  <- getEntry "PortNameEntry"
+    userNameEntry  <- getEntry "UserNameEntry"
+    speedCombo     <- getComboBox "SpeedCombo"
+    stopBitCombo   <- getComboBox "StopBitCombo"
+    parityBitCombo <- getComboBox "ParityBitCombo"
+    wordBitCombo   <- getComboBox "WordBitCombo"
+
+    entrySetText portNameEntry $ portName defaultOptions
+    entrySetText userNameEntry $ userName defaultOptions
+    comboBoxSetActive speedCombo     4
+    comboBoxSetActive stopBitCombo   1
+    comboBoxSetActive parityBitCombo 2
+    comboBoxSetActive wordBitCombo   0
+
+    return defaultOptions
+    where
+        getEntry     = builderGetObject builder castToEntry
+        getComboBox  = builderGetObject builder castToComboBox
 
 collectOptions :: Builder -> IO ChannelOptions
 collectOptions builder = do 
@@ -47,7 +82,7 @@ collectOptions builder = do
     portSpeedVal   <- string2PortSpeed <$> getFromCombo speedCombo
     stopBitVal     <- string2StopBit   <$> getFromCombo stopBitCombo
     parityBitVal   <- string2ParityBit <$> getFromCombo parityBitCombo
-    wordBitVal     <- read             <$> getFromCombo wordBitCombo
+    wordBitVal     <- getWordBit       <$> getFromCombo wordBitCombo
 
     return ChannelOptions
         {
@@ -68,12 +103,20 @@ collectOptions builder = do
                     treeModelGetValue model iter $ makeColumnIdString 0
                 Nothing   -> return ""
 
-        getEntry    = builderGetObject builder castToEntry
-        getComboBox = builderGetObject builder castToComboBox
+        getEntry     = builderGetObject builder castToEntry
+        getComboBox  = builderGetObject builder castToComboBox
+        getWordBit s = case s of 
+            "" -> 7
+            _  -> (read s)::Word8
 
 setupOptionDialog :: Builder -> GuiCallbacks -> IO Dialog
-setupOptionDialog builder callbacks = do 
+setupOptionDialog builder callbacks = do
     optionDialog <- builderGetObject builder castToDialog "OptionDialog" 
+    optionDialog `set` [windowDeletable := False]
+
+    -- Setup options
+    initOptions <- setupDefaultOptions builder 
+    options <- newIORef initOptions
 
     -- OptionDialog item
     optionItem <- builderGetObject builder castToMenuItem "OptionItem"
@@ -85,7 +128,10 @@ setupOptionDialog builder callbacks = do
 
     optionDialog `on` response $ \respId -> do
           case respId of 
-            ResponseUser 1 -> optionChangedCallback callbacks =<< collectOptions builder
+            ResponseUser 1 -> do
+                newOptions <- collectOptions builder
+                writeIORef options newOptions
+                optionChangedCallback callbacks newOptions
             ResponseUser 2 -> return ()
             _ -> return ()
           widgetHideAll optionDialog
