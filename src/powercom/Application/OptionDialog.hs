@@ -15,6 +15,7 @@
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
 module Application.OptionDialog (
       setupOptionDialog
+    , defaultOptions
     ) where
 
 import Graphics.UI.Gtk

@@ -18,5 +18,25 @@ module Main (main) where
 import Paths_PowerCom
 import Application.Layer
 
-main = initApplicationLayer =<< getDataFileName "views/gui.glade"
+import Control.Monad (forever)
+import Control.Concurrent (threadDelay)
+import Control.Distributed.Process
+import Control.Distributed.Process.Node
+import Network.Transport.Chan
+import System.Exit
+
+exitMsg :: (ProcessId, String) -> Process ()
+exitMsg (_, msg) = case msg of
+  "exit" -> liftIO exitSuccess
+  _      -> return ()
+
+main = do
+  t <- createTransport
+  node <- newLocalNode t initRemoteTable
+  gladeFile <- getDataFileName "views/gui.glade"
+
+  runProcess node $ do 
+    rootId <- getSelfPid
+    appLevelId <- initApplicationLayer gladeFile rootId 
+    forever $ receiveWait [match exitMsg]
     

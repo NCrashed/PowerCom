@@ -19,16 +19,64 @@ module Application.Layer (
 
 import Application.Gui 
 import Application.Types 
+import Channel.Layer
+import Utility (while, exitMsg)
+import Event
 
-callbacks = 
+import Control.Distributed.Process
+import Control.Monad (forever)
+import Control.Concurrent (yield)
+
+data AppEvents = 
+    AppEvents
+    {
+      sendEvent          :: Event String
+    , connectEvent       :: Event ()
+    , disconnectEvent    :: Event ()
+    , optionChangedEvent :: Event ChannelOptions 
+    }
+
+initAppEvents :: IO AppEvents
+initAppEvents = do 
+    sendEvent'             <- initEvent ""
+    connectEvent'          <- initEvent ()
+    disconnectEvent'       <- initEvent ()
+    optionChangedEvent'    <- initEvent defaultOptions
+
+    return 
+        AppEvents
+        {
+          sendEvent          = sendEvent'
+        , connectEvent       = connectEvent'
+        , disconnectEvent    = disconnectEvent'
+        , optionChangedEvent = optionChangedEvent'
+        }
+
+callbacks :: AppEvents -> GuiCallbacks
+callbacks events = 
     GuiCallbacks {
-                   sendMessageCallback   = \msg -> putStrLn $ "Tried to send message: " ++ msg
+                   sendMessageCallback   = \msg -> do
+                    putStrLn $ "Tried to send message: " ++ msg
+                    newEvent <- tag (sendEvent events) msg
+                    riseEvent newEvent
+                    return ()
+
                  , connectCallback       = putStrLn "Connection"
                  , disconnectCallback    = putStrLn "Disconnection"
                  , optionChangedCallback = \opt -> putStrLn $  "Options changed!"
                  }
 
-initApplicationLayer :: FilePath -> IO ()
-initApplicationLayer gladeFile = do 
-    initGui gladeFile callbacks
-    
+initApplicationLayer :: FilePath -> ProcessId -> Process ()
+initApplicationLayer gladeFile rootId = do 
+    spawnLocal $ do
+      thisId <- getSelfPid
+      channelId <- initChannelLayer thisId
+      events <- liftIO initAppEvents
+      spawnLocal $ do
+          liftIO $ runGui gladeFile $ callbacks events
+          mapM_ ((flip send) (thisId, "exit")) [thisId, channelId, rootId]
+      --while $ receiveWait [match exitMsg]
+      forever $ do 
+        checkEvent (sendEvent events) (\s -> liftIO $ putStrLn $ "Event! " ++ s) ()
+        liftIO yield
+    return ()

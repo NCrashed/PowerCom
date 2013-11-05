@@ -14,7 +14,8 @@
 --    You should have received a copy of the GNU General Public License
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
 module Application.Gui (
-      initGui
+      runGui
+    , defaultOptions
     ) where
 
 import Graphics.UI.Gtk
@@ -22,8 +23,8 @@ import Graphics.UI.Gtk.Builder
 import Application.OptionDialog
 import Application.Types
 
-initGui :: FilePath -> GuiCallbacks -> IO ()
-initGui gladeFile callbacks = do 
+runGui :: FilePath -> GuiCallbacks -> IO ()
+runGui gladeFile callbacks = do 
     initGUI
     builder <- builderNew
     builderAddFromFile builder gladeFile
