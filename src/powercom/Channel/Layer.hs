@@ -20,12 +20,42 @@ module Channel.Layer (
 import Control.Distributed.Process
 import Physical.Layer 
 import Utility (while, exitMsg)
+import Channel.Options
+
+connect :: (ProcessId, String) -> Process Bool
+connect (senderId, _) = do
+    thisId <- getSelfPid
+    send senderId (thisId, "info", "Connecting...")
+    return True
+
+disconnect :: (ProcessId, String) -> Process Bool
+disconnect (senderId, _) = do
+    thisId <- getSelfPid
+    send senderId (thisId, "info", "Disconnecting...")
+    return True
+
+sendMessage :: (ProcessId, String, String) -> Process Bool 
+sendMessage (_, _, msg) = do 
+    liftIO $ putStrLn $ "Sending: " ++ msg
+    return True
+
+changeOptions :: (ProcessId, String, ChannelOptions) -> Process Bool 
+changeOptions (senderId, _, options) = do 
+    thisId <- getSelfPid
+    send senderId (thisId, "info", "Changing options...")
+    return True
 
 initChannelLayer :: ProcessId -> Process ProcessId
 initChannelLayer appLevel = do
     id <- spawnLocal $ do
         thisId <- getSelfPid
         physLevelId <- initPhysicalLayer thisId
-        while $ receiveWait [match exitMsg]
+        while $ receiveWait [
+              matchIf (\(_, com)    -> com == "exit") exitMsg
+            , matchIf (\(_, com, _) -> com == "send") sendMessage
+            , matchIf (\(_, com)    -> com == "connect") connect
+            , matchIf (\(_, com)    -> com == "disconnect") disconnect
+            , matchIf (\(_, com, _) -> com == "options") changeOptions]
+
         send physLevelId (thisId, "exit")
     return id

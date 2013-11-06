@@ -21,7 +21,9 @@ module Application.OptionDialog (
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Builder
 import Application.Types
-import System.Hardware.Serialport
+import Channel.Options
+import System.Hardware.Serialport hiding (send)
+
 import Data.Word 
 import Data.Functor
 import Data.Data
@@ -36,17 +38,6 @@ createEnumCombo combo descr = do
         \text -> [cellText := text]
     comboBoxSetModel combo $ Just store
     return combo
-
-defaultOptions :: ChannelOptions
-defaultOptions = ChannelOptions
-        {
-          portName       = "COM1"
-        , userName       = "Username"
-        , portSpeed      = CS2400
-        , portStopBits   = Two
-        , portParityBits = NoParity 
-        , portWordBits   = 7
-        }
 
 setupDefaultOptions :: Builder -> IO ChannelOptions
 setupDefaultOptions builder = do
@@ -110,7 +101,7 @@ collectOptions builder = do
             "" -> 7
             _  -> (read s)::Word8
 
-setupOptionDialog :: Builder -> GuiCallbacks -> IO Dialog
+setupOptionDialog :: Builder -> GuiCallbacks -> IO (IORef ChannelOptions)
 setupOptionDialog builder callbacks = do
     optionDialog <- builderGetObject builder castToDialog "OptionDialog" 
     optionDialog `set` [windowDeletable := False]
@@ -162,4 +153,4 @@ setupOptionDialog builder callbacks = do
     createEnumCombo wordBitCombo $ map show [7,8,9]
 
     -- OptionDialog
-    return optionDialog
+    return options

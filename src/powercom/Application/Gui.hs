@@ -14,17 +14,101 @@
 --    You should have received a copy of the GNU General Public License
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
 module Application.Gui (
-      runGui
-    , defaultOptions
+      initGui
+    , runGui
     ) where
 
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Builder
 import Application.OptionDialog
 import Application.Types
+import Channel.Options
 
-runGui :: FilePath -> GuiCallbacks -> IO ()
-runGui gladeFile callbacks = do 
+import Control.Concurrent
+import Data.Functor
+import Data.IORef
+
+putUserMessage :: TextView -> String -> String -> IO ()
+putUserMessage textView username msg = do 
+    buffer <- textViewGetBuffer textView
+    bufferAddStringWithTag buffer ("[" ++ username ++ "]: ") "UsernameColor"
+    bufferAddStringWithTag buffer (msg++"\n") "MessageColor"
+
+    textViewScrollToEnd textView
+
+putInfoMessage :: TextView -> String -> IO ()
+putInfoMessage textView msg = do 
+    buffer <- textViewGetBuffer textView
+    bufferAddStringWithTag buffer (msg++"\n") "InfoColor"
+
+    textViewScrollToEnd textView
+
+putErrorMessage :: TextView -> String -> IO ()
+putErrorMessage textView msg = do 
+    buffer <- textViewGetBuffer textView
+    bufferAddStringWithTag buffer (msg++"\n") "ErrorColor"
+
+    textViewScrollToEnd textView
+
+textViewScrollToEnd :: TextView -> IO ()
+textViewScrollToEnd textView = do 
+    buffer <- textViewGetBuffer textView
+    endIter <- textBufferGetEndIter buffer
+    textViewScrollToIter textView endIter 0.0 Nothing 
+    return ()
+
+bufferAddStringWithTag :: TextBuffer -> String -> String -> IO ()
+bufferAddStringWithTag buffer string tagName =  do 
+    oldEnd <- textBufferGetEndIter buffer
+    line <- textIterGetLine oldEnd
+    offset <- textIterGetLineOffset oldEnd
+
+    textBufferInsert buffer oldEnd string
+
+    newEnd <- textBufferGetEndIter buffer 
+    newBegin <- textBufferGetIterAtLineOffset buffer line offset 
+    textBufferApplyTagByName buffer tagName newBegin newEnd
+
+    return ()
+
+initTextView :: Builder -> IO TextView
+initTextView builder = do 
+    textView <- builderGetObject builder castToTextView "MessageArea"
+    buffer <- textViewGetBuffer textView
+    tagTable <- textBufferGetTagTable buffer
+
+    usernameColorTag <- textTagNew $ Just "UsernameColor"
+    usernameColorTag `set` 
+        [ textTagBackground := "White"
+        , textTagForeground := "Dark Green"
+        ]
+    textTagTableAdd tagTable usernameColorTag
+
+    messageColorTag <- textTagNew $ Just "MessageColor"
+    messageColorTag `set` 
+        [ textTagBackground := "White"
+        , textTagForeground := "Dark Blue"
+        ]
+    textTagTableAdd tagTable messageColorTag
+
+    errorColorTag <- textTagNew $ Just "ErrorColor"
+    errorColorTag `set` 
+        [ textTagBackground := "White"
+        , textTagForeground := "Crimson"
+        ]
+    textTagTableAdd tagTable errorColorTag
+
+    infoColorTag <- textTagNew $ Just "InfoColor"
+    infoColorTag `set` 
+        [ textTagBackground := "White"
+        , textTagForeground := "Cadet Blue"
+        ]
+    textTagTableAdd tagTable infoColorTag
+
+    return textView
+
+initGui :: FilePath -> GuiCallbacks -> IO (Window, GuiApi)
+initGui gladeFile callbacks = do 
     initGUI
     builder <- builderNew
     builderAddFromFile builder gladeFile
@@ -37,15 +121,24 @@ runGui gladeFile callbacks = do
     exitItem <- builderGetObject builder castToMenuItem "ExitItem"
     exitItem `on` menuItemActivate $ mainQuit
 
+    -- OptionDialog 
+    optionsRef <- setupOptionDialog builder callbacks
+
+    -- TextView for messages
+    textView <- initTextView builder 
+
     -- Send buffer
     sendEntry <- builderGetObject builder castToEntry "SendEntry"
     
     -- Send Button
     sendButton <- builderGetObject builder castToButton "SendButton"
-    sendButton `on` buttonActivated $ do 
-        sendMessageCallback callbacks =<< entryGetText sendEntry
+    sendButton `on` buttonActivated $ do
+        msg <- entryGetText sendEntry
+        username <- userName <$> readIORef optionsRef
+        putUserMessage textView username msg
+        sendMessageCallback callbacks msg 
         entrySetText sendEntry ""
-
+        
     -- Connect button
     connectButton <- builderGetObject builder castToToolButton "ConnectButton"
     onToolButtonClicked connectButton $ connectCallback callbacks
@@ -54,9 +147,17 @@ runGui gladeFile callbacks = do
     disconnectButton <- builderGetObject builder castToToolButton "DisconnectButton"
     onToolButtonClicked disconnectButton $ disconnectCallback callbacks
 
-    -- OptionDialog 
-    optionDialog <- setupOptionDialog builder callbacks
 
+    return (mainWindow, GuiApi
+        {
+          printMessage = putUserMessage textView
+        , printInfo    = putInfoMessage textView
+        , printError   = putErrorMessage textView
+        })
 
+runGui :: Window -> IO ()
+runGui mainWindow = do 
+    -- Yielding GTK thread
+    timeoutAddFull (yield >> return True) priorityDefaultIdle 50
     widgetShowAll mainWindow
     mainGUI

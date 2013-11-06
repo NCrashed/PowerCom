@@ -20,12 +20,13 @@ module Application.Layer (
 import Application.Gui 
 import Application.Types 
 import Channel.Layer
+import Channel.Options 
 import Utility (while, exitMsg)
 import Event
 
 import Control.Distributed.Process
 import Control.Monad (forever)
-import Control.Concurrent
+import Control.Concurrent (yield)
 import Graphics.UI.Gtk
 
 data AppEvents = 
@@ -57,15 +58,39 @@ callbacks :: AppEvents -> GuiCallbacks
 callbacks events = 
     GuiCallbacks {
                    sendMessageCallback   = \msg -> do
-                    putStrLn $ "Tried to send message: " ++ msg
                     newEvent <- tag (sendEvent events) msg
                     riseEvent newEvent
                     return ()
 
-                 , connectCallback       = putStrLn "Connection"
-                 , disconnectCallback    = putStrLn "Disconnection"
-                 , optionChangedCallback = \opt -> putStrLn $  "Options changed!"
+                 , connectCallback       = do 
+                    riseEvent $ connectEvent events
+                    return ()
+
+                 , disconnectCallback    = do
+                    riseEvent $ disconnectEvent events
+                    return ()
+
+                 , optionChangedCallback = \opt -> do 
+                    newEvent <- tag (optionChangedEvent events) opt
+                    riseEvent newEvent
+                    return ()
+
                  }
+
+printUserMessage :: GuiApi -> (ProcessId, String, String, String) -> Process Bool
+printUserMessage api (_, _, user, msg) = do 
+    liftIO $ (printMessage api) user msg 
+    return True
+
+printInfoMessage :: GuiApi -> (ProcessId, String, String) -> Process Bool
+printInfoMessage api (_, _, msg) = do 
+    liftIO $ (printInfo api) msg 
+    return True
+
+printErrorMessage :: GuiApi -> (ProcessId, String, String) -> Process Bool
+printErrorMessage api (_, _, msg) = do 
+    liftIO $ (printError api) msg 
+    return True
 
 initApplicationLayer :: FilePath -> ProcessId -> Process ()
 initApplicationLayer gladeFile rootId = do 
@@ -73,16 +98,24 @@ initApplicationLayer gladeFile rootId = do
       thisId <- getSelfPid
       channelId <- initChannelLayer thisId
       events <- liftIO initAppEvents
+      
+      (mainWindow, api) <- liftIO $ initGui gladeFile $ callbacks events
 
       spawnLocal $ do
-          liftIO $ do
-            timeoutAddFull (yield >> return True) priorityDefaultIdle 50
-            runGui gladeFile $ callbacks events
+          liftIO $ runGui mainWindow
           mapM_ ((flip send) (thisId, "exit")) [thisId, channelId, rootId]
       
       spawnLocal $ forever $ do 
-        checkEvent (sendEvent events) (\s -> liftIO $ putStrLn $ "Event! " ++ s) ()
+        checkEvent (sendEvent events) (\s -> send channelId (thisId, "send", s)) ()
+        checkEvent (connectEvent events) (\() -> send channelId (thisId, "connect")) ()
+        checkEvent (disconnectEvent events) (\() -> send channelId (thisId, "disconnect")) ()
+        checkEvent (optionChangedEvent events) (\opt -> send channelId (thisId, "options", opt)) ()
         liftIO $ yield
 
-      while $ receiveWait [match exitMsg]
+      while $ receiveWait [
+              matchIf (\(_, com)       -> com == "exit")      exitMsg
+            , matchIf (\(_, com, _, _) -> com == "message") $ printUserMessage api
+            , matchIf (\(_, com, _)    -> com == "info")    $ printInfoMessage api
+            , matchIf (\(_, com, _)    -> com == "error")   $ printErrorMessage api]
+
     return ()
