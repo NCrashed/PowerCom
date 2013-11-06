@@ -21,6 +21,7 @@ import Control.Distributed.Process
 import Physical.Layer 
 import Utility (while, exitMsg)
 import Channel.Options
+import qualified Data.ByteString as BS
 
 connect :: (ProcessId, String) -> Process Bool
 connect (senderId, _) = do
@@ -45,17 +46,31 @@ changeOptions (senderId, _, options) = do
     send senderId (thisId, "info", "Changing options...")
     return True
 
+transitError :: ProcessId -> (ProcessId, String, String) -> Process Bool
+transitError transitId (_, _, msg) = do 
+    thisId <- getSelfPid
+    send transitId (thisId, "error", msg)
+    return True
+
+receiveFrame :: ProcessId -> (ProcessId, String, BS.ByteString) -> Process Bool 
+receiveFrame transitId (_, _, byteFrame) = do 
+    thisId <- getSelfPid
+    return True
+
 initChannelLayer :: ProcessId -> Process ProcessId
-initChannelLayer appLevel = do
+initChannelLayer appLayer = do
     id <- spawnLocal $ do
         thisId <- getSelfPid
-        physLevelId <- initPhysicalLayer thisId
+        physLevelId <- initPhysicalLayer defaultOptions thisId
         while $ receiveWait [
-              matchIf (\(_, com)    -> com == "exit") exitMsg
-            , matchIf (\(_, com, _) -> com == "send") sendMessage
-            , matchIf (\(_, com)    -> com == "connect") connect
+              matchIf (\(_, com)    -> com == "exit")       exitMsg
+            , matchIf (\(_, com, _) -> com == "send")       sendMessage
+            , matchIf (\(_, com)    -> com == "connect")    connect
             , matchIf (\(_, com)    -> com == "disconnect") disconnect
-            , matchIf (\(_, com, _) -> com == "options") changeOptions]
+            , matchIf (\(_, com, _) -> com == "options")    changeOptions
+            -- From physical layer
+            , matchIf (\(_, com, _) -> com == "error")   $ transitError   appLayer
+            , matchIf (\(_, com, _) -> com == "frame")   $ receiveFrame   appLayer]
 
         send physLevelId (thisId, "exit")
     return id

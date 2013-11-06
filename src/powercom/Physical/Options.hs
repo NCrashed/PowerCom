@@ -13,22 +13,21 @@
 --
 --    You should have received a copy of the GNU General Public License
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
-module Application.Types (
-      GuiCallbacks(..)
-    , GuiApi(..)  
+module Physical.Options (
+      ChannelOptions(..)
+    , channel2physicalOptions
     ) where 
 
 import Channel.Options
+import System.Hardware.Serialport
 
-data GuiCallbacks = GuiCallbacks {
-      sendMessageCallback   :: String -> IO ()
-    , connectCallback       :: IO ()
-    , disconnectCallback    :: IO ()
-    , optionChangedCallback :: ChannelOptions -> IO ()
-}
-
-data GuiApi = GuiApi {
-      printMessage :: String -> String -> IO ()
-    , printInfo    :: String -> IO ()
-    , printError   :: String -> IO ()
-}
+channel2physicalOptions :: ChannelOptions -> SerialPortSettings
+channel2physicalOptions channel = SerialPortSettings
+    {
+      commSpeed    = portSpeed      channel
+    , bitsPerWord  = portWordBits   channel 
+    , stopb        = portStopBits   channel 
+    , parity       = portParityBits channel
+    , flowControl  = NoFlowControl
+    , timeout      = 1
+    }
