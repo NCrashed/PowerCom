@@ -25,7 +25,8 @@ import Event
 
 import Control.Distributed.Process
 import Control.Monad (forever)
-import Control.Concurrent (yield)
+import Control.Concurrent
+import Graphics.UI.Gtk
 
 data AppEvents = 
     AppEvents
@@ -33,7 +34,7 @@ data AppEvents =
       sendEvent          :: Event String
     , connectEvent       :: Event ()
     , disconnectEvent    :: Event ()
-    , optionChangedEvent :: Event ChannelOptions 
+    , optionChangedEvent :: Event ChannelOptions
     }
 
 initAppEvents :: IO AppEvents
@@ -72,11 +73,16 @@ initApplicationLayer gladeFile rootId = do
       thisId <- getSelfPid
       channelId <- initChannelLayer thisId
       events <- liftIO initAppEvents
+
       spawnLocal $ do
-          liftIO $ runGui gladeFile $ callbacks events
+          liftIO $ do
+            timeoutAddFull (yield >> return True) priorityDefaultIdle 50
+            runGui gladeFile $ callbacks events
           mapM_ ((flip send) (thisId, "exit")) [thisId, channelId, rootId]
-      --while $ receiveWait [match exitMsg]
-      forever $ do 
+      
+      spawnLocal $ forever $ do 
         checkEvent (sendEvent events) (\s -> liftIO $ putStrLn $ "Event! " ++ s) ()
-        liftIO yield
+        liftIO $ yield
+
+      while $ receiveWait [match exitMsg]
     return ()
