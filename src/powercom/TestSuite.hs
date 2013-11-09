@@ -16,7 +16,7 @@
 module Main (main) where
 
 --import ApplicationLevel
---import ChannelLevel
+import Channel.Frame
 
 import Test.Framework as TF (defaultMain, testGroup, Test)
 --import Test.Framework.Providers.HUnit
@@ -27,9 +27,9 @@ main = defaultMain tests
 
 tests :: [TF.Test]
 tests = [
-        --testGroup "QuickCheck ChannelLevel" [
-        --        testProperty "toByteString"           prop_toByteString
-        --        ]
+        testGroup "QuickCheck Channel.Frame" [
+                testProperty "toByteString"           prop_toByteString
+                ]
         -- For future HUnit integration
         --testGroup "Point tests Data.Decimal" [
         --        testCase "pi to 3dp"     (dec 3 3142  @=? realFracToDecimal 3 piD)]

@@ -18,63 +18,111 @@ module Physical.Layer (
     ) where
 
 import Control.Distributed.Process
-import qualified Data.ByteString      as BS
-import qualified Data.ByteString.Lazy as BL
-import System.Hardware.Serialport     as Serial
+import qualified Data.ByteString                as BS
+import qualified Data.ByteString.Lazy           as BL
+import qualified System.Hardware.Serialport     as Serial
 import Data.Binary.Strict.Get
 import Data.Binary.Put
 import Data.Word 
 import Data.IORef
+import Control.Exception (SomeException)
 
 import Physical.Options
 import Utility (while, exitMsg)
 
+type PortState = IORef (Serial.SerialPort, Bool)
+
 toStrict :: BL.ByteString -> BS.ByteString
 toStrict = BS.concat . BL.toChunks
 
-initPort :: ChannelOptions -> Process (IORef SerialPort)
-initPort channel = liftIO $ newIORef =<< openSerial (portName channel) (channel2physicalOptions channel)
+initPort :: ChannelOptions -> Process PortState
+initPort channel = do
+    port <- liftIO $ Serial.openSerial (portName channel) (channel2physicalOptions channel)
+    liftIO $ newIORef (port, True)
 
-closePort :: IORef SerialPort -> Process ()
-closePort portRef = liftIO $ closeSerial =<< readIORef portRef
+closePort :: PortState -> Process ()
+closePort portState = do
+    (port, opened) <- liftIO $ readIORef portState
+    if opened then liftIO $ Serial.closeSerial port
+    else return ()
 
-reopenPort :: IORef SerialPort -> ChannelOptions -> Process ()
-reopenPort portRef options = do
-    closePort portRef
-    liftIO $ writeIORef portRef =<< openSerial (portName options) (channel2physicalOptions options)
+reopenPort :: PortState -> ChannelOptions -> Process ()
+reopenPort portState options = do
+    (port, opened) <- liftIO $ readIORef portState 
+    if(opened == True) then closePort portState else return ()
+    newPort <- liftIO $ Serial.openSerial (portName options) (channel2physicalOptions options)
+    liftIO $ writeIORef portState (newPort, True)
     return ()
 
-receiveFrame :: IORef SerialPort -> Process (Maybe BS.ByteString)
-receiveFrame portRef = do 
-    port <- liftIO $ readIORef portRef
-    bsLength <- liftIO $ recv port 4 
-    case fst $ runGet (getWord32be) bsLength of
-        Left _ -> return Nothing
-        Right frameLength -> do
-            msg <- liftIO $ recv port $ fromIntegral frameLength
-            return $ Just msg
+receiveFrame :: PortState -> Process (Maybe BS.ByteString)
+receiveFrame portState = do 
+    (port, opened) <- liftIO $ readIORef portState
+    if opened == False then return Nothing
+    else do
+        bsLength <- liftIO $ Serial.recv port 4 
+        case fst $ runGet (getWord32be) bsLength of
+            Left _ -> return Nothing
+            Right frameLength -> do
+                msg <- liftIO $ Serial.recv port $ fromIntegral frameLength
+                return $ Just msg
 
-sendFrame :: IORef SerialPort -> BS.ByteString -> Process (Maybe String)
-sendFrame portRef msg = do
-    port <- liftIO $ readIORef portRef
-    sendedLength <- liftIO $ Serial.send port bsLength
-    if sendedLength == 4 then do 
-        sendedMsg <- liftIO $ Serial.send port msg 
-        if sendedMsg == frameLength 
-            then return Nothing
-            else return $ Just "Failed to send frame body!"
-    else return $ Just "Failed to send frame length!"
-    where
-        bsLength :: BS.ByteString
-        bsLength = toStrict $ runPut $ putWord32be $ fromIntegral frameLength
-        frameLength = BS.length msg
+sendFrame :: PortState -> BS.ByteString -> Process (Maybe String)
+sendFrame portState msg = do
+    (port, opened) <- liftIO $ readIORef portState
+    if opened == False then return Nothing
+    else do
+        sendedLength <- liftIO $ Serial.send port bsLength
+        if sendedLength == 4 then do 
+            sendedMsg <- liftIO $ Serial.send port msg 
+            if sendedMsg == frameLength 
+                then return Nothing
+                else return $ Just "Failed to send frame body!"
+        else return $ Just "Failed to send frame length!"
+        where
+            bsLength :: BS.ByteString
+            bsLength = toStrict $ runPut $ putWord32be $ fromIntegral frameLength
+            frameLength = BS.length msg
+
+sendFrameHandler :: PortState -> (ProcessId, String, BS.ByteString) -> Process Bool
+sendFrameHandler portState (senderId, _, msg) = do 
+    liftIO $ putStrLn $ "Message: " ++ show msg
+    thisId <- getSelfPid
+    result <- sendFrame portState msg 
+    case result of 
+        Nothing -> return True
+        Just err -> do
+            send senderId (thisId, "error", err)
+            return True
+
+reopenPortHandler :: PortState -> (ProcessId, String, ChannelOptions) -> Process Bool 
+reopenPortHandler portState (senderId, _, options) = do
+    liftIO $ putStrLn "Phys reopen..."
+    reopenPort portState options
+    return True
+
+physicalLayerCycle :: ChannelOptions -> ProcessId -> Process ()
+physicalLayerCycle options channelId = do
+    thisId <- getSelfPid
+    liftIO $ putStrLn "Phys init..."
+
+    initResult <- try (initPort options) :: Process (Either SomeException PortState)
+    case initResult of 
+        Right port -> do
+            liftIO $ putStrLn "Phys port opened..."
+
+            while $ receiveWait [
+                  matchIf (\(_, com)    -> com == "exit")       exitMsg
+                , matchIf (\(_, com, _) -> com == "send")       (sendFrameHandler port)
+                , matchIf (\(_, com, _) -> com == "reopen")     (reopenPortHandler port)]
+
+            closePort port
+        Left ex -> do
+            liftIO $ putStrLn $ "Exception while initing physical layer: " ++ show ex
+            (_, _, newOptions) <- expect :: Process (ProcessId, String, ChannelOptions)
+            liftIO $ putStrLn $ "Got new options, trying with them..."
+            physicalLayerCycle newOptions channelId
 
 initPhysicalLayer :: ChannelOptions -> ProcessId -> Process ProcessId
 initPhysicalLayer options channelId = do
-    id <- spawnLocal $ do
-        thisId <- getSelfPid
-        portRef <- initPort options
-
-        while $ receiveWait [match exitMsg]
-        closePort portRef
+    id <- spawnLocal $ physicalLayerCycle options channelId
     return id

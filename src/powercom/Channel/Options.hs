@@ -45,6 +45,9 @@ deriving instance Typeable Parity
 deriving instance Typeable FlowControl
 deriving instance Typeable SerialPortSettings
 
+deriving instance Show Parity 
+deriving instance Show StopBits 
+
 data ChannelOptions =
     ChannelOptions 
     {
@@ -55,7 +58,7 @@ data ChannelOptions =
     , portParityBits:: Parity
     , portWordBits  :: Word8
     }
-    deriving (Typeable)
+    deriving (Typeable, Show)
     
 defaultOptions :: ChannelOptions
 defaultOptions = ChannelOptions
@@ -65,7 +68,7 @@ defaultOptions = ChannelOptions
         , portSpeed      = CS2400
         , portStopBits   = Two
         , portParityBits = NoParity 
-        , portWordBits   = 7
+        , portWordBits   = 8
         }
 
 portSpeed2String :: CommSpeed -> String 

@@ -30,13 +30,10 @@ import Data.Data
 import Data.List
 import Data.IORef
 
+createEnumCombo :: ComboBox -> [String] -> IO ComboBox
 createEnumCombo combo descr = do
-    store <- listStoreNew descr
-    cell <- cellRendererTextNew
-    cellLayoutPackStart combo cell True
-    cellLayoutSetAttributes combo cell store $ 
-        \text -> [cellText := text]
-    comboBoxSetModel combo $ Just store
+    store <- comboBoxSetModelText combo
+    mapM_ (comboBoxAppendText combo) descr
     return combo
 
 setupDefaultOptions :: Builder -> IO ChannelOptions
@@ -53,7 +50,7 @@ setupDefaultOptions builder = do
     comboBoxSetActive speedCombo     4
     comboBoxSetActive stopBitCombo   1
     comboBoxSetActive parityBitCombo 2
-    comboBoxSetActive wordBitCombo   0
+    comboBoxSetActive wordBitCombo   1
 
     return defaultOptions
     where
@@ -70,7 +67,7 @@ collectOptions builder = do
     wordBitCombo   <- getComboBox "WordBitCombo"
 
     portNameVal    <- entryGetText portNameEntry
-    userNameVal    <- entryGetText portNameEntry
+    userNameVal    <- entryGetText userNameEntry
     portSpeedVal   <- string2PortSpeed <$> getFromCombo speedCombo
     stopBitVal     <- string2StopBit   <$> getFromCombo stopBitCombo
     parityBitVal   <- string2ParityBit <$> getFromCombo parityBitCombo
@@ -88,12 +85,10 @@ collectOptions builder = do
     where
         getFromCombo :: ComboBox -> IO String
         getFromCombo combo = do 
-            iter' <- comboBoxGetActiveIter combo
-            case iter' of
-                Just iter -> do 
-                    Just model <- comboBoxGetModel combo
-                    treeModelGetValue model iter $ makeColumnIdString 0
-                Nothing   -> return ""
+            maybeText <- comboBoxGetActiveText combo
+            case maybeText of
+                Just str -> return str
+                Nothing  -> return ""
 
         getEntry     = builderGetObject builder castToEntry
         getComboBox  = builderGetObject builder castToComboBox
@@ -106,29 +101,7 @@ setupOptionDialog builder callbacks = do
     optionDialog <- builderGetObject builder castToDialog "OptionDialog" 
     optionDialog `set` [windowDeletable := False]
 
-    -- Setup options
-    initOptions <- setupDefaultOptions builder 
-    options <- newIORef initOptions
-
-    -- OptionDialog item
-    optionItem <- builderGetObject builder castToMenuItem "OptionItem"
-    optionItem `on` menuItemActivate $ widgetShowAll optionDialog
-
-    -- OptionDialog tool button
-    optionButton <- builderGetObject builder castToToolButton "OptionButton"
-    onToolButtonClicked optionButton $ widgetShowAll optionDialog
-
-    optionDialog `on` response $ \respId -> do
-          case respId of 
-            ResponseUser 1 -> do
-                newOptions <- collectOptions builder
-                writeIORef options newOptions
-                optionChangedCallback callbacks newOptions
-            ResponseUser 2 -> return ()
-            _ -> return ()
-          widgetHideAll optionDialog
-
-    -- Speed combo
+    -- Combos
     speedCombo <- builderGetObject builder castToComboBox "SpeedCombo"
     createEnumCombo speedCombo $ map portSpeed2String
         [CS110
@@ -151,6 +124,28 @@ setupOptionDialog builder callbacks = do
 
     wordBitCombo <- builderGetObject builder castToComboBox "WordBitCombo"
     createEnumCombo wordBitCombo $ map show [7,8,9]
+
+    -- Setup options
+    initOptions <- setupDefaultOptions builder 
+    options <- newIORef initOptions
+
+    -- OptionDialog item
+    optionItem <- builderGetObject builder castToMenuItem "OptionItem"
+    optionItem `on` menuItemActivate $ widgetShowAll optionDialog
+
+    -- OptionDialog tool button
+    optionButton <- builderGetObject builder castToToolButton "OptionButton"
+    onToolButtonClicked optionButton $ widgetShowAll optionDialog
+
+    optionDialog `on` response $ \respId -> do
+          case respId of 
+            ResponseUser 1 -> do
+                newOptions <- collectOptions builder
+                writeIORef options newOptions
+                optionChangedCallback callbacks newOptions
+            ResponseUser 2 -> return ()
+            _ -> return ()
+          widgetHideAll optionDialog
 
     -- OptionDialog
     return options
