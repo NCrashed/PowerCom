@@ -29,5 +29,5 @@ channel2physicalOptions channel = SerialPortSettings
     , stopb        = portStopBits   channel 
     , parity       = portParityBits channel
     , flowControl  = NoFlowControl
-    , timeout      = 1
+    , timeout      = 0 -- other values will throw you in the abyss of pain! Please, don't touch ;)
     }
