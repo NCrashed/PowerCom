@@ -27,6 +27,7 @@ import Data.Word
 import Data.IORef
 import Control.Exception (SomeException)
 import Control.Monad (forever)
+import Control.Concurrent (yield)
 
 import Physical.Options
 import Utility (while, exitMsg)
@@ -70,7 +71,9 @@ receiveFrame portState = do
             (port, opened) <- liftIO $ readIORef portState
             if opened == False then return $ Left "Port closed!"
             else do
+                liftIO $ yield
                 res <- try (liftIO $ Serial.recv port msgLength) :: Process (Either SomeException BS.ByteString)
+                liftIO $ yield
                 case res of 
                     Left ex         -> return $ Left (show ex)
                     Right msg       -> if BS.length msg == 0 
@@ -113,7 +116,6 @@ sendFrame portState msg = do
 
 sendFrameHandler :: PortState -> (ProcessId, String, BS.ByteString) -> Process Bool
 sendFrameHandler portState (senderId, _, msg) = do 
-    liftIO $ putStrLn $ "Message: " ++ show msg
     thisId <- getSelfPid
     result <- sendFrame portState msg 
     case result of 
@@ -131,12 +133,12 @@ reopenPortHandler portState (senderId, _, options) = do
 physicalLayerCycle :: ChannelOptions -> ProcessId -> Process ()
 physicalLayerCycle options channelId = do
     thisId <- getSelfPid
-    liftIO $ putStrLn "Phys init..."
+    send channelId (thisId, "info", "Physical layer initialized...")
 
     initResult <- try (initPort options) :: Process (Either SomeException PortState)
     case initResult of 
         Right port -> do
-            liftIO $ putStrLn "Serial port opened..."
+            send channelId (thisId, "info", "Serial port opened...")
 
             receiveId <- spawnLocal $ receiveFrameCycle channelId port
 
@@ -147,9 +149,9 @@ physicalLayerCycle options channelId = do
 
             closePort port
         Left ex -> do
-            liftIO $ putStrLn $ "Exception while initing physical layer: " ++ show ex
+            send channelId (thisId, "error", "Exception while initing physical layer: " ++ show ex)
             (_, _, newOptions) <- expect :: Process (ProcessId, String, ChannelOptions)
-            liftIO $ putStrLn $ "Got new options, trying with them..."
+            send channelId (thisId, "info", "Got new options, trying to init physical layer...")
             physicalLayerCycle newOptions channelId
 
 initPhysicalLayer :: ChannelOptions -> ProcessId -> Process ProcessId

@@ -24,6 +24,8 @@ module Channel.Options (
     , string2StopBit
     , parityBit2String
     , string2ParityBit
+    , updateOptionsFromPairs
+    , getOptionPairs
     ) where 
 
 import System.Hardware.Serialport
@@ -47,6 +49,10 @@ deriving instance Typeable SerialPortSettings
 
 deriving instance Show Parity 
 deriving instance Show StopBits 
+
+deriving instance Eq CommSpeed 
+deriving instance Eq StopBits 
+deriving instance Eq Parity 
 
 data ChannelOptions =
     ChannelOptions 
@@ -123,6 +129,33 @@ string2ParityBit s = case s of
     "Odd"       -> Odd
     "No parity" -> NoParity
     _           -> NoParity
+
+getOptionPairs :: ChannelOptions -> [String] -> [(String, String)]
+getOptionPairs options props = foldl getProperty [] props
+    where
+        getProperty :: [(String, String)] -> String -> [(String, String)]
+        getProperty acc prop = case prop of 
+            "portName"       -> (prop, portName options) : acc
+            "userName"       -> (prop, userName options) : acc
+            "portSpeed"      -> (prop, portSpeed2String $ portSpeed      options) : acc
+            "portStopBits"   -> (prop, stopBit2String   $ portStopBits   options) : acc
+            "portParityBits" -> (prop, parityBit2String $ portParityBits options) : acc
+            "portWordBits"   -> (prop, show $ portWordBits options) : acc
+            _                -> acc    
+
+updateOptionsFromPairs :: [(String, String)] -> ChannelOptions -> ChannelOptions
+updateOptionsFromPairs pairs options = foldl setProperty options pairs 
+    where
+        setProperty :: ChannelOptions -> (String, String) -> ChannelOptions
+        setProperty opt (name, val) = case name of 
+            "portName"       -> opt { portName = val }
+            "userName"       -> opt { userName = val }
+            "portSpeed"      -> opt { portSpeed = string2PortSpeed val }
+            "portStopBits"   -> opt { portStopBits = string2StopBit val }
+            "portParityBits" -> opt { portParityBits = string2ParityBit val }
+            "portWordBits"   -> opt { portWordBits = read val }
+            _                -> opt
+
 
 instance Binary CommSpeed where
     put sp = case sp of 

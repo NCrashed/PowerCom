@@ -40,23 +40,32 @@ disconnect (senderId, _) = do
     send senderId (thisId, "info", "Disconnecting...")
     return True
 
-sendMessage :: ProcessId -> (ProcessId, String, String) -> Process Bool 
-sendMessage physLayerId (_, _, msg) = do 
+sendMessage :: ProcessId -> IORef ChannelOptions -> (ProcessId, String, String) -> Process Bool 
+sendMessage physLayerId optionsRef (_, _, msg) = do 
     thisId <- getSelfPid
+    options <- liftIO $ readIORef optionsRef
     liftIO $ putStrLn $ "Sending: " ++ msg
+    send physLayerId (thisId, "send", frameBuffer $ userName options)
+    return True
+    where
+        frameBuffer :: String -> BS.ByteString
+        frameBuffer uname = toByteString $ InformationFrame uname msg
+
+changeOptions :: ProcessId -> IORef ChannelOptions -> (ProcessId, String, ChannelOptions) -> Process Bool 
+changeOptions physLayerId optionsRef (senderId, _, options) = do 
+    thisId <- getSelfPid
+    send senderId (thisId, "info", "Changing options...")
+    liftIO $ writeIORef optionsRef options
     send physLayerId (thisId, "send", frameBuffer)
+    send physLayerId (thisId, "reopen", options)
     return True
     where
         frameBuffer :: BS.ByteString
-        frameBuffer = toByteString $ InformationFrame msg
-
-changeOptions :: ProcessId -> (ProcessId, String, ChannelOptions) -> Process Bool 
-changeOptions physLayerId (senderId, _, options) = do 
-    thisId <- getSelfPid
-    send senderId (thisId, "info", "Changing options...")
-    liftIO $ putStrLn $ show options
-    send physLayerId (thisId, "reopen", options)
-    return True
+        frameBuffer = toByteString $ OptionFrame $ getOptionPairs options 
+            [ "portSpeed"
+            , "portStopBits"
+            , "portParityBits"
+            , "portWordBits"]
 
 transitError :: ProcessId -> (ProcessId, String, String) -> Process Bool
 transitError transitId (_, _, msg) = do 
@@ -64,35 +73,50 @@ transitError transitId (_, _, msg) = do
     send transitId (thisId, "error", msg)
     return True
 
-receiveFrame :: ProcessId -> (ProcessId, String, BS.ByteString) -> Process Bool 
-receiveFrame transitId (_, _, byteFrame) = do 
+transitInfo :: ProcessId -> (ProcessId, String, String) -> Process Bool
+transitInfo transitId (_, _, msg) = do 
     thisId <- getSelfPid
+    send transitId (thisId, "info", msg)
+    return True
+
+receiveFrame :: ProcessId -> ProcessId -> IORef ChannelOptions -> (ProcessId, String, BS.ByteString) -> Process Bool 
+receiveFrame physLayerId transitId optionsRef (_, _, byteFrame) = do 
+    thisId <- getSelfPid
+    options <- liftIO $ readIORef optionsRef
     case frameResult of 
         Left err -> do 
             send transitId (thisId, "error", "Failed to recieve frame: " ++ err)
             return True
         Right frame -> case frame of 
-            InformationFrame msg -> send transitId (thisId, "info", "Recieved inf frame: "++msg) >> return True
+            InformationFrame name msg -> send transitId (thisId, "message", name, msg) >> return True
+            OptionFrame props         -> do 
+                let newOptions = updateOptionsFromPairs props options
+                liftIO $ writeIORef optionsRef newOptions
+                send physLayerId (thisId, "reopen", newOptions)
+                send transitId   (thisId, "info", "Recieved new options from other side, changing...")
+                send transitId   (thisId, "options", newOptions)
+                return True
             _ -> send transitId (thisId, "info", "Recieved another frame") >> return True
     return True
     where 
         (frameResult,_) = fromByteString byteFrame 
 
-initChannelLayer :: ProcessId -> Process ProcessId
-initChannelLayer appLayer = do
+initChannelLayer :: ProcessId -> ChannelOptions -> Process ProcessId
+initChannelLayer appLayer options = do
     id <- spawnLocal $ do
         thisId <- getSelfPid
-        optionsRef <- liftIO $ newIORef defaultOptions
-        physLayerId <- initPhysicalLayer defaultOptions thisId
+        optionsRef <- liftIO $ newIORef options
+        physLayerId <- initPhysicalLayer options thisId
         while $ receiveWait [
               matchIf (\(_, com)    -> com == "exit")       $ exitMsg
-            , matchIf (\(_, com, _) -> com == "send")       $ sendMessage physLayerId
-            , matchIf (\(_, com)    -> com == "connect")    $ connect physLayerId optionsRef
+            , matchIf (\(_, com, _) -> com == "send")       $ sendMessage   physLayerId optionsRef
+            , matchIf (\(_, com)    -> com == "connect")    $ connect       physLayerId optionsRef
             , matchIf (\(_, com)    -> com == "disconnect") $ disconnect
-            , matchIf (\(_, com, _) -> com == "options")    $ changeOptions physLayerId
+            , matchIf (\(_, com, _) -> com == "options")    $ changeOptions physLayerId optionsRef
             -- From physical layer
             , matchIf (\(_, com, _) -> com == "error")   $ transitError   appLayer
-            , matchIf (\(_, com, _) -> com == "frame")   $ receiveFrame   appLayer]
+            , matchIf (\(_, com, _) -> com == "info")    $ transitInfo    appLayer
+            , matchIf (\(_, com, _) -> com == "frame")   $ receiveFrame   physLayerId appLayer optionsRef]
 
         send physLayerId (thisId, "exit")
     return id

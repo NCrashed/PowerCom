@@ -29,15 +29,35 @@ import Data.Functor
 import Data.Data
 import Data.List
 import Data.IORef
+import Data.Maybe 
 
-createEnumCombo :: ComboBox -> [String] -> IO ComboBox
-createEnumCombo combo descr = do
+-- |Fills combo with list of showable values and return function to
+-- matching that values with combo elements 
+createEnumCombo :: (Eq a) => ComboBox         -- ^ Combo box to fill
+    -> (a -> String)                          -- ^ Function to map elem into string, show for instance
+    -> [a]                                    -- ^ List of values the combo be filled
+    -> IO (a -> Maybe Int)                    -- ^ Matching function to search values in the combo
+createEnumCombo combo f descr = do
     store <- comboBoxSetModelText combo
-    mapM_ (comboBoxAppendText combo) descr
-    return combo
+    mapM_ (comboBoxAppendText combo . f) descr
+    return $ \val -> elemIndex val descr
 
-setupDefaultOptions :: Builder -> IO ChannelOptions
-setupDefaultOptions builder = do
+-- | Data type used to mapping options to option dialog combos indexes
+data OptionMappings = OptionMappings
+    {
+      speedMapping    :: CommSpeed -> Maybe Int 
+    , stopBitMapping  :: StopBits  -> Maybe Int 
+    , parityMapping   :: Parity    -> Maybe Int
+    , portWordMapping :: Word8     -> Maybe Int
+    }
+
+defaultOptionsWithArgs :: Maybe (String, String) -> ChannelOptions
+defaultOptionsWithArgs args = case args of 
+    Nothing -> defaultOptions 
+    Just (portname, username) -> defaultOptions { portName = portname, userName = username}
+
+setupGuiOptions :: Builder -> OptionMappings -> ChannelOptions -> IO ChannelOptions
+setupGuiOptions builder mappings options = do
     portNameEntry  <- getEntry "PortNameEntry"
     userNameEntry  <- getEntry "UserNameEntry"
     speedCombo     <- getComboBox "SpeedCombo"
@@ -45,14 +65,14 @@ setupDefaultOptions builder = do
     parityBitCombo <- getComboBox "ParityBitCombo"
     wordBitCombo   <- getComboBox "WordBitCombo"
 
-    entrySetText portNameEntry $ portName defaultOptions
-    entrySetText userNameEntry $ userName defaultOptions
-    comboBoxSetActive speedCombo     4
-    comboBoxSetActive stopBitCombo   1
-    comboBoxSetActive parityBitCombo 2
-    comboBoxSetActive wordBitCombo   1
+    entrySetText portNameEntry $ portName options
+    entrySetText userNameEntry $ userName options
+    comboBoxSetActive speedCombo     $ fromMaybe 0 $ (speedMapping mappings)    $ portSpeed      options
+    comboBoxSetActive stopBitCombo   $ fromMaybe 0 $ (stopBitMapping mappings)  $ portStopBits   options
+    comboBoxSetActive parityBitCombo $ fromMaybe 0 $ (parityMapping mappings)   $ portParityBits options
+    comboBoxSetActive wordBitCombo   $ fromMaybe 0 $ (portWordMapping mappings) $ portWordBits   options
 
-    return defaultOptions
+    return options
     where
         getEntry     = builderGetObject builder castToEntry
         getComboBox  = builderGetObject builder castToComboBox
@@ -96,14 +116,14 @@ collectOptions builder = do
             "" -> 7
             _  -> (read s)::Word8
 
-setupOptionDialog :: Builder -> GuiCallbacks -> IO (IORef ChannelOptions)
-setupOptionDialog builder callbacks = do
+setupOptionDialog :: Builder -> GuiCallbacks -> Maybe (String, String) -> IO (IORef ChannelOptions, ChannelOptions -> IO ())
+setupOptionDialog builder callbacks initArgs = do
     optionDialog <- builderGetObject builder castToDialog "OptionDialog" 
     optionDialog `set` [windowDeletable := False]
 
     -- Combos
     speedCombo <- builderGetObject builder castToComboBox "SpeedCombo"
-    createEnumCombo speedCombo $ map portSpeed2String
+    speedMatch <- createEnumCombo speedCombo portSpeed2String
         [CS110
         ,CS300
         ,CS600
@@ -117,16 +137,23 @@ setupOptionDialog builder callbacks = do
         ,CS115200]
 
     stopBitCombo <- builderGetObject builder castToComboBox "StopBitCombo"
-    createEnumCombo stopBitCombo $ map stopBit2String [One,Two]
+    stopBitMatch <- createEnumCombo stopBitCombo stopBit2String [One,Two]
 
     parityBitCombo <- builderGetObject builder castToComboBox "ParityBitCombo"
-    createEnumCombo parityBitCombo $ map parityBit2String [Even, Odd, NoParity]
+    parityBitMatch <- createEnumCombo parityBitCombo parityBit2String [Even, Odd, NoParity]
 
     wordBitCombo <- builderGetObject builder castToComboBox "WordBitCombo"
-    createEnumCombo wordBitCombo $ map show [7,8,9]
+    wordBitMatch <- createEnumCombo wordBitCombo show [7,8,9]
 
+    let mappings = OptionMappings
+            {
+              speedMapping    = speedMatch
+            , stopBitMapping  = stopBitMatch
+            , parityMapping   = parityBitMatch
+            , portWordMapping = wordBitMatch
+            } 
     -- Setup options
-    initOptions <- setupDefaultOptions builder 
+    initOptions <- setupGuiOptions builder mappings $ defaultOptionsWithArgs initArgs
     options <- newIORef initOptions
 
     -- OptionDialog item
@@ -148,4 +175,4 @@ setupOptionDialog builder callbacks = do
           widgetHideAll optionDialog
 
     -- OptionDialog
-    return options
+    return (options, \o -> setupGuiOptions builder mappings o >> return ())

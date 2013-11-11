@@ -92,15 +92,21 @@ printErrorMessage api (_, _, msg) = do
     liftIO $ (printError api) msg 
     return True
 
-initApplicationLayer :: FilePath -> ProcessId -> Process ()
-initApplicationLayer gladeFile rootId = do 
-    spawnLocal $ do
-      thisId <- getSelfPid
-      channelId <- initChannelLayer thisId
-      events <- liftIO initAppEvents
-      
-      (mainWindow, api) <- liftIO $ initGui gladeFile $ callbacks events
+setupOptionsHandler :: GuiApi -> (ProcessId, String, ChannelOptions) -> Process Bool
+setupOptionsHandler api (_, _, options) = do 
+    liftIO $ (setupOptions api) options 
+    return True 
 
+initApplicationLayer :: FilePath -> Maybe (String, String) -> ProcessId -> Process ()
+initApplicationLayer gladeFile args rootId = do 
+    spawnLocal $ do
+
+      events <- liftIO initAppEvents
+      (mainWindow, options, api) <- liftIO $ initGui gladeFile args $ callbacks events
+        
+      thisId <- getSelfPid
+      channelId <- initChannelLayer thisId options
+      
       spawnLocal $ do
           liftIO $ runGui mainWindow
           mapM_ ((flip send) (thisId, "exit")) [thisId, channelId, rootId]
@@ -116,6 +122,7 @@ initApplicationLayer gladeFile rootId = do
               matchIf (\(_, com)       -> com == "exit")      exitMsg
             , matchIf (\(_, com, _, _) -> com == "message") $ printUserMessage api
             , matchIf (\(_, com, _)    -> com == "info")    $ printInfoMessage api
-            , matchIf (\(_, com, _)    -> com == "error")   $ printErrorMessage api]
+            , matchIf (\(_, com, _)    -> com == "error")   $ printErrorMessage api
+            , matchIf (\(_, com, _)    -> com == "options") $ setupOptionsHandler api]
 
     return ()

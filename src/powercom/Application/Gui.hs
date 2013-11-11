@@ -71,6 +71,13 @@ bufferAddStringWithTag buffer string tagName =  do
 
     return ()
 
+textViewGetAllText :: TextView -> IO String 
+textViewGetAllText textView = do 
+    buffer <- textViewGetBuffer textView 
+    beginIter <- textBufferGetStartIter buffer 
+    endIter <- textBufferGetEndIter buffer 
+    textBufferGetText buffer beginIter endIter True
+
 initTextView :: Builder -> IO TextView
 initTextView builder = do 
     textView <- builderGetObject builder castToTextView "MessageArea"
@@ -107,8 +114,8 @@ initTextView builder = do
 
     return textView
 
-initGui :: FilePath -> GuiCallbacks -> IO (Window, GuiApi)
-initGui gladeFile callbacks = do 
+initGui :: FilePath -> Maybe (String, String) -> GuiCallbacks -> IO (Window, ChannelOptions, GuiApi)
+initGui gladeFile initArgs callbacks = do 
     initGUI
     builder <- builderNew
     builderAddFromFile builder gladeFile
@@ -122,7 +129,8 @@ initGui gladeFile callbacks = do
     exitItem `on` menuItemActivate $ mainQuit
 
     -- OptionDialog 
-    optionsRef <- setupOptionDialog builder callbacks
+    (optionsRef, setupOptions') <- setupOptionDialog builder callbacks initArgs
+    options <- readIORef optionsRef
 
     -- TextView for messages
     textView <- initTextView builder 
@@ -148,11 +156,13 @@ initGui gladeFile callbacks = do
     onToolButtonClicked disconnectButton $ disconnectCallback callbacks
 
 
-    return (mainWindow, GuiApi
+    return (mainWindow, options, GuiApi
         {
           printMessage = putUserMessage textView
         , printInfo    = putInfoMessage textView
         , printError   = putErrorMessage textView
+        , setupOptions = setupOptions'
+        , getChatText  = textViewGetAllText textView
         })
 
 runGui :: Window -> IO ()

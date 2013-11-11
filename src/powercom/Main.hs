@@ -24,6 +24,7 @@ import Control.Distributed.Process
 import Control.Distributed.Process.Node
 import Network.Transport.Chan
 import System.Exit
+import System.Environment
 
 exitMsg :: (ProcessId, String) -> Process ()
 exitMsg (_, msg) = case msg of
@@ -31,12 +32,18 @@ exitMsg (_, msg) = case msg of
   _      -> return ()
 
 main = do
+  args <- getArgs
+
   t <- createTransport
   node <- newLocalNode t initRemoteTable
   gladeFile <- getDataFileName "views/gui.glade"
 
   runProcess node $ do 
     rootId <- getSelfPid
-    appLevelId <- initApplicationLayer gladeFile rootId 
+    appLevelId <- initApplicationLayer gladeFile (convertArgs args) rootId 
     forever $ receiveWait [match exitMsg]
     
+  where 
+    convertArgs args = case length args of
+        2 -> Just (args !! 0, args !! 1)
+        _ -> Nothing

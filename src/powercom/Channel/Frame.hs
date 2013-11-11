@@ -33,6 +33,7 @@ import Data.Binary.Put
 
 import Control.Concurrent (threadDelay)
 import Control.Monad (forever)
+import Control.Applicative
 
 import Test.QuickCheck
 
@@ -48,14 +49,14 @@ frameEndByte = 0xFF
 
 frameType :: Frame -> Word8
 frameType frame = case frame of 
-                    InformationFrame _ -> 0x00
-                    LinkFrame          -> 0x01
-                    UnlinkFrame        -> 0x02
-                    AckFrame           -> 0x03
-                    RetFrame           -> 0x04
-                    OptionFrame      _ -> 0x05
+                    InformationFrame _ _ -> 0x00
+                    LinkFrame            -> 0x01
+                    UnlinkFrame          -> 0x02
+                    AckFrame             -> 0x03
+                    RetFrame             -> 0x04
+                    OptionFrame      _   -> 0x05
 
-data Frame = InformationFrame String
+data Frame = InformationFrame String String
              | OptionFrame [(String, String)]
              | LinkFrame   
              | UnlinkFrame 
@@ -64,7 +65,7 @@ data Frame = InformationFrame String
              deriving (Show, Eq)
  
 instance Arbitrary Frame where
-    arbitrary = oneof [ InformationFrame <$> (arbitrary :: Gen String)
+    arbitrary = oneof [ InformationFrame <$> (arbitrary :: Gen String) <*> (arbitrary :: Gen String)
                       , return LinkFrame
                       , return UnlinkFrame
                       , return AckFrame
@@ -83,12 +84,12 @@ word2int = fromInteger . toInteger
 
 instance FrameClass Frame where
     toByteString frame = BS.concat . BL.toChunks $ runPut $ case frame of 
-                            InformationFrame s  -> putBounded $ putMarkedString s
-                            LinkFrame           -> putShort 
-                            UnlinkFrame         -> putShort
-                            AckFrame            -> putShort
-                            RetFrame            -> putShort
-                            OptionFrame      os -> putBounded $ putListLength os >> putOptions os
+                            InformationFrame u s -> putBounded $ putMarkedString u >> putMarkedString s
+                            LinkFrame            -> putShort 
+                            UnlinkFrame          -> putShort
+                            AckFrame             -> putShort
+                            RetFrame             -> putShort
+                            OptionFrame      os  -> putBounded $ putListLength os >> putOptions os
                          where 
                             putBegin          = putWord8 frameStartByte >> (putWord8 $ frameType frame)
                             putEnd            = putWord8 frameEndByte
@@ -108,7 +109,7 @@ instance FrameClass Frame where
                                         True  -> do
                                             frameType <- getWord8
                                             frame <- case frameType of
-                                                0x00 -> return InformationFrame `ap` parseMarkedString
+                                                0x00 -> return InformationFrame `ap` parseMarkedString `ap` parseMarkedString
                                                 0x01 -> return LinkFrame
                                                 0x02 -> return UnlinkFrame
                                                 0x03 -> return AckFrame
@@ -123,10 +124,6 @@ instance FrameClass Frame where
                                     len <- getWord8
                                     body <- getByteString $ word2int len 
                                     return $ C8.unpack body
-
-                                parseInformationFrame = do
-                                    body <- parseMarkedString 
-                                    return $ InformationFrame body
 
 parseKeyValue :: Get [(String, String)]
 parseKeyValue =  do
