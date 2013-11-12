@@ -50,24 +50,24 @@ frameEndByte = 0xFF
 frameType :: Frame -> Word8
 frameType frame = case frame of 
                     InformationFrame _ _ -> 0x00
-                    LinkFrame            -> 0x01
-                    UnlinkFrame          -> 0x02
+                    LinkFrame        _   -> 0x01
+                    UnlinkFrame      _   -> 0x02
                     AckFrame             -> 0x03
                     RetFrame             -> 0x04
                     OptionFrame      _   -> 0x05
 
 data Frame = InformationFrame String String
              | OptionFrame [(String, String)]
-             | LinkFrame   
-             | UnlinkFrame 
+             | LinkFrame   String 
+             | UnlinkFrame String 
              | AckFrame    
              | RetFrame    
              deriving (Show, Eq)
  
 instance Arbitrary Frame where
     arbitrary = oneof [ InformationFrame <$> (arbitrary :: Gen String) <*> (arbitrary :: Gen String)
-                      , return LinkFrame
-                      , return UnlinkFrame
+                      , LinkFrame   <$> (arbitrary :: Gen String)
+                      , UnlinkFrame <$> (arbitrary :: Gen String)
                       , return AckFrame
                       , return RetFrame
                       , OptionFrame <$> (arbitrary :: Gen [(String, String)])]
@@ -85,8 +85,8 @@ word2int = fromInteger . toInteger
 instance FrameClass Frame where
     toByteString frame = BS.concat . BL.toChunks $ runPut $ case frame of 
                             InformationFrame u s -> putBounded $ putMarkedString u >> putMarkedString s
-                            LinkFrame            -> putShort 
-                            UnlinkFrame          -> putShort
+                            LinkFrame   u        -> putBounded $ putMarkedString u
+                            UnlinkFrame u        -> putBounded $ putMarkedString u
                             AckFrame             -> putShort
                             RetFrame             -> putShort
                             OptionFrame      os  -> putBounded $ putListLength os >> putOptions os
@@ -110,8 +110,8 @@ instance FrameClass Frame where
                                             frameType <- getWord8
                                             frame <- case frameType of
                                                 0x00 -> return InformationFrame `ap` parseMarkedString `ap` parseMarkedString
-                                                0x01 -> return LinkFrame
-                                                0x02 -> return UnlinkFrame
+                                                0x01 -> return LinkFrame   `ap` parseMarkedString
+                                                0x02 -> return UnlinkFrame `ap` parseMarkedString
                                                 0x03 -> return AckFrame
                                                 0x04 -> return RetFrame
                                                 0x05 -> return OptionFrame `ap` parseKeyValue

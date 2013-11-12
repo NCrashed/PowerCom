@@ -97,6 +97,16 @@ setupOptionsHandler api (_, _, options) = do
     liftIO $ (setupOptions api) options 
     return True 
 
+userConnectHandler :: GuiApi -> (ProcessId, String, String) -> Process Bool
+userConnectHandler api (_, _, name) = do 
+    liftIO $ (addUser api) name
+    return True 
+
+userDisconnectHandler :: GuiApi -> (ProcessId, String, String) -> Process Bool
+userDisconnectHandler api (_, _, name) = do 
+    liftIO $ (removeUser api) name
+    return True 
+    
 initApplicationLayer :: FilePath -> Maybe (String, String) -> ProcessId -> Process ()
 initApplicationLayer gladeFile args rootId = do 
     spawnLocal $ do
@@ -119,10 +129,12 @@ initApplicationLayer gladeFile args rootId = do
         liftIO $ yield
 
       while $ receiveWait [
-              matchIf (\(_, com)       -> com == "exit")      exitMsg
-            , matchIf (\(_, com, _, _) -> com == "message") $ printUserMessage api
-            , matchIf (\(_, com, _)    -> com == "info")    $ printInfoMessage api
-            , matchIf (\(_, com, _)    -> com == "error")   $ printErrorMessage api
-            , matchIf (\(_, com, _)    -> com == "options") $ setupOptionsHandler api]
+              matchIf (\(_, com)       -> com == "exit")         exitMsg
+            , matchIf (\(_, com, _, _) -> com == "message")    $ printUserMessage       api
+            , matchIf (\(_, com, _)    -> com == "info")       $ printInfoMessage       api
+            , matchIf (\(_, com, _)    -> com == "error")      $ printErrorMessage      api
+            , matchIf (\(_, com, _)    -> com == "options")    $ setupOptionsHandler    api
+            , matchIf (\(_, com, _)    -> com == "connect")    $ userConnectHandler     api
+            , matchIf (\(_, com, _)    -> com == "disconnect") $ userDisconnectHandler  api]
 
     return ()

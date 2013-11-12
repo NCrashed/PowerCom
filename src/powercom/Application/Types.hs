@@ -33,4 +33,6 @@ data GuiApi = GuiApi {
     , printError   :: String -> IO ()
     , setupOptions :: ChannelOptions -> IO ()
     , getChatText  :: IO String
+    , addUser      :: String -> IO ()
+    , removeUser   :: String -> IO ()
 }

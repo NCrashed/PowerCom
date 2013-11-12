@@ -48,13 +48,18 @@ closePort portState = do
     if opened then liftIO $ Serial.closeSerial port
     else return ()
 
-reopenPort :: PortState -> ChannelOptions -> Process ()
+reopenPort :: PortState -> ChannelOptions -> Process (Maybe String)
 reopenPort portState options = do
     (port, opened) <- liftIO $ readIORef portState 
     if(opened == True) then closePort portState else return ()
-    newPort <- liftIO $ Serial.openSerial (portName options) (channel2physicalOptions options)
-    liftIO $ writeIORef portState (newPort, True)
-    return ()
+
+    res <- try (liftIO $ liftIO $ 
+        Serial.openSerial (portName options) (channel2physicalOptions options)) 
+            :: Process (Either SomeException Serial.SerialPort)
+    case res of 
+        Left ex -> return $ Just $ show ex 
+        Right newPort -> liftIO $ writeIORef portState (newPort, True) >> return Nothing
+    
 
 receiveFrame :: PortState -> Process (Either String BS.ByteString)
 receiveFrame portState = do 
@@ -126,9 +131,11 @@ sendFrameHandler portState (senderId, _, msg) = do
 
 reopenPortHandler :: PortState -> (ProcessId, String, ChannelOptions) -> Process Bool 
 reopenPortHandler portState (senderId, _, options) = do
-    liftIO $ putStrLn "Phys reopen..."
-    reopenPort portState options
-    return True
+    thisId <- getSelfPid
+    res <- reopenPort portState options
+    case res of
+        Just err -> send senderId False >> send senderId (thisId, "error", err) >> return True
+        Nothing  -> send senderId True  >> return True
 
 physicalLayerCycle :: ChannelOptions -> ProcessId -> Process ()
 physicalLayerCycle options channelId = do

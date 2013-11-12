@@ -26,39 +26,78 @@ import Control.Distributed.Process
 import qualified Data.ByteString as BS
 import Data.IORef 
 
-connect :: ProcessId -> IORef ChannelOptions -> (ProcessId, String) -> Process Bool
-connect physLayerId optionsRef (senderId, _) = do
+connect :: ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String) -> Process Bool
+connect physLayerId connRef optionsRef (senderId, _) = do
     thisId <- getSelfPid
     options <- liftIO $ readIORef optionsRef
-    send senderId (thisId, "info", "Opening port...")
-    send physLayerId (thisId, "reopen", options)
-    return True
+    connection <- liftIO $ readIORef connRef
+    case connection of 
+        False -> do 
+            send senderId (thisId, "info", "Connecting...")
+            send physLayerId (thisId, "reopen", options)
+            connResult <- expect :: Process Bool
+            case connResult of 
+                True -> do 
+                    liftIO $ writeIORef connRef True
+                    send physLayerId (thisId, "send", frameBuffer $ userName options)
+                    return True
+                False -> return True
+        True -> return True
+    where
+        frameBuffer :: String -> BS.ByteString
+        frameBuffer uname = toByteString $ LinkFrame uname
 
-disconnect :: (ProcessId, String) -> Process Bool
-disconnect (senderId, _) = do
-    thisId <- getSelfPid
-    send senderId (thisId, "info", "Disconnecting...")
-    return True
-
-sendMessage :: ProcessId -> IORef ChannelOptions -> (ProcessId, String, String) -> Process Bool 
-sendMessage physLayerId optionsRef (_, _, msg) = do 
+disconnect :: ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String) -> Process Bool
+disconnect physLayerId connRef optionsRef (senderId, _) = do
     thisId <- getSelfPid
     options <- liftIO $ readIORef optionsRef
-    liftIO $ putStrLn $ "Sending: " ++ msg
-    send physLayerId (thisId, "send", frameBuffer $ userName options)
-    return True
+    connection <- liftIO $ readIORef connRef
+    case connection of 
+        True -> do 
+            send senderId (thisId, "info", "Disconnecting...")
+            send physLayerId (thisId, "send", frameBuffer $ userName options)
+            liftIO $ writeIORef connRef False
+            return True
+        False -> return True
+    where
+        frameBuffer :: String -> BS.ByteString
+        frameBuffer uname = toByteString $ UnlinkFrame uname
+
+ifConnected :: Bool -> IORef Bool -> ProcessId -> Process Bool -> Process Bool
+ifConnected mute connRef errorTransitId action = do 
+    connection <- liftIO $ readIORef connRef
+    thisId <- getSelfPid
+    case connection of 
+        True  -> action
+        False -> if not mute then send errorTransitId (thisId, "error", "Connection is not established!") >> return True
+            else return True
+
+ifNotConnected :: IORef Bool -> Process Bool -> Process Bool
+ifNotConnected connRef action = do 
+    connection <- liftIO $ readIORef connRef
+    thisId <- getSelfPid
+    case connection of 
+        False  -> action
+        True   -> return True
+
+sendMessage :: ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String, String) -> Process Bool 
+sendMessage physLayerId connRef optionsRef (senderId, _, msg) = do 
+    thisId <- getSelfPid
+    options <- liftIO $ readIORef optionsRef
+    ifConnected False connRef senderId $ send physLayerId (thisId, "send", frameBuffer $ userName options) >> return True
     where
         frameBuffer :: String -> BS.ByteString
         frameBuffer uname = toByteString $ InformationFrame uname msg
 
-changeOptions :: ProcessId -> IORef ChannelOptions -> (ProcessId, String, ChannelOptions) -> Process Bool 
-changeOptions physLayerId optionsRef (senderId, _, options) = do 
+changeOptions :: ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String, ChannelOptions) -> Process Bool 
+changeOptions physLayerId connRef optionsRef (senderId, _, options) = do 
     thisId <- getSelfPid
-    send senderId (thisId, "info", "Changing options...")
     liftIO $ writeIORef optionsRef options
-    send physLayerId (thisId, "send", frameBuffer)
     send physLayerId (thisId, "reopen", options)
-    return True
+    ifConnected True connRef senderId $ do 
+        send senderId (thisId, "info", "Changing options...")
+        send physLayerId (thisId, "send", frameBuffer)
+        return True
     where
         frameBuffer :: BS.ByteString
         frameBuffer = toByteString $ OptionFrame $ getOptionPairs options 
@@ -79,8 +118,8 @@ transitInfo transitId (_, _, msg) = do
     send transitId (thisId, "info", msg)
     return True
 
-receiveFrame :: ProcessId -> ProcessId -> IORef ChannelOptions -> (ProcessId, String, BS.ByteString) -> Process Bool 
-receiveFrame physLayerId transitId optionsRef (_, _, byteFrame) = do 
+receiveFrame :: ProcessId -> ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String, BS.ByteString) -> Process Bool 
+receiveFrame physLayerId transitId connRef optionsRef (_, _, byteFrame) = do 
     thisId <- getSelfPid
     options <- liftIO $ readIORef optionsRef
     case frameResult of 
@@ -96,6 +135,23 @@ receiveFrame physLayerId transitId optionsRef (_, _, byteFrame) = do
                 send transitId   (thisId, "info", "Recieved new options from other side, changing...")
                 send transitId   (thisId, "options", newOptions)
                 return True
+
+            LinkFrame   name -> do 
+                send transitId (thisId, "connect",    name)
+                ifNotConnected connRef $ do 
+                    send transitId   (thisId, "info", "Remote host connected!")
+                    send physLayerId (thisId, "send", toByteString $ LinkFrame $ userName options)
+                    liftIO $ writeIORef connRef True
+                    return True
+
+            UnlinkFrame name -> do 
+                send transitId (thisId, "disconnect", name)
+                ifConnected True connRef transitId $ do 
+                    send transitId   (thisId, "info", "Remote host disconnected!")
+                    send physLayerId (thisId, "send", toByteString $ UnlinkFrame $ userName options)
+                    liftIO $ writeIORef connRef False
+                    return True
+
             _ -> send transitId (thisId, "info", "Recieved another frame") >> return True
     return True
     where 
@@ -106,17 +162,18 @@ initChannelLayer appLayer options = do
     id <- spawnLocal $ do
         thisId <- getSelfPid
         optionsRef <- liftIO $ newIORef options
+        connRef    <- liftIO $ newIORef False
         physLayerId <- initPhysicalLayer options thisId
         while $ receiveWait [
               matchIf (\(_, com)    -> com == "exit")       $ exitMsg
-            , matchIf (\(_, com, _) -> com == "send")       $ sendMessage   physLayerId optionsRef
-            , matchIf (\(_, com)    -> com == "connect")    $ connect       physLayerId optionsRef
-            , matchIf (\(_, com)    -> com == "disconnect") $ disconnect
-            , matchIf (\(_, com, _) -> com == "options")    $ changeOptions physLayerId optionsRef
+            , matchIf (\(_, com, _) -> com == "send")       $ sendMessage   physLayerId connRef optionsRef
+            , matchIf (\(_, com)    -> com == "connect")    $ connect       physLayerId connRef optionsRef
+            , matchIf (\(_, com)    -> com == "disconnect") $ disconnect    physLayerId connRef optionsRef
+            , matchIf (\(_, com, _) -> com == "options")    $ changeOptions physLayerId connRef optionsRef
             -- From physical layer
             , matchIf (\(_, com, _) -> com == "error")   $ transitError   appLayer
             , matchIf (\(_, com, _) -> com == "info")    $ transitInfo    appLayer
-            , matchIf (\(_, com, _) -> com == "frame")   $ receiveFrame   physLayerId appLayer optionsRef]
+            , matchIf (\(_, com, _) -> com == "frame")   $ receiveFrame   physLayerId appLayer connRef optionsRef]
 
         send physLayerId (thisId, "exit")
     return id
