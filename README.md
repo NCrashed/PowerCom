@@ -1,19 +1,17 @@
 PowerCom
 ========
 
-Serial port chat to train Haskell.
-
-I've run into big problem with Gtk2Hs and Cloud Haskell. Gtk bindings are using IO () callbacks and Cloud Haskell 
-is using Process monad to handle messages communication. Last easy workaround i found is to spawn new process from IO monad,
-but it is so redundant... project is freezed temporarily.
+Serial port chat to train Haskell. Application based on [Gtk2Hs](http://projects.haskell.org/gtk2hs/) 
+and [Cloud Haskell](haskell-distributed.github.io).
 
 Compilation
 ===========
 
-First, install GtkHs from [this tutorial](http://www.haskell.org/haskellwiki/Gtk2Hs/Installation).
+1. Install Gtk2Hs from [this tutorial](http://www.haskell.org/haskellwiki/Gtk2Hs/Installation).
+2. Install [network-transport-inmemory](https://github.com/haskell-distributed/network-transport-inmemory) package 
+that not presented in hackage.
 
-And finally:
+And finally in PowerCom root directory:
 ```
-cd src
 cabal install
 ```
