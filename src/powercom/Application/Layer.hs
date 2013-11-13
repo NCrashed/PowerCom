@@ -35,7 +35,7 @@ data AppEvents =
       sendEvent          :: Event String
     , connectEvent       :: Event ()
     , disconnectEvent    :: Event ()
-    , optionChangedEvent :: Event ChannelOptions
+    , optionChangedEvent :: Event (ChannelOptions, ChannelOptions)
     }
 
 initAppEvents :: IO AppEvents
@@ -43,7 +43,7 @@ initAppEvents = do
     sendEvent'             <- initEvent ""
     connectEvent'          <- initEvent ()
     disconnectEvent'       <- initEvent ()
-    optionChangedEvent'    <- initEvent defaultOptions
+    optionChangedEvent'    <- initEvent (defaultOptions, defaultOptions)
 
     return 
         AppEvents
@@ -70,8 +70,8 @@ callbacks events =
                     riseEvent $ disconnectEvent events
                     return ()
 
-                 , optionChangedCallback = \opt -> do 
-                    newEvent <- tag (optionChangedEvent events) opt
+                 , optionChangedCallback = \opt oldopt -> do 
+                    newEvent <- tag (optionChangedEvent events) (opt, oldopt)
                     riseEvent newEvent
                     return ()
 
@@ -125,7 +125,10 @@ initApplicationLayer gladeFile args rootId = do
         checkEvent (sendEvent events) (\s -> send channelId (thisId, "send", s)) ()
         checkEvent (connectEvent events) (\() -> send channelId (thisId, "connect")) ()
         checkEvent (disconnectEvent events) (\() -> send channelId (thisId, "disconnect")) ()
-        checkEvent (optionChangedEvent events) (\opt -> send channelId (thisId, "options", opt)) ()
+        checkEvent (optionChangedEvent events) (\(opt, oldopt) -> do
+          liftIO $ (removeUser api) $ userName oldopt
+          liftIO $ (addUser api) $ userName opt
+          send channelId (thisId, "options", opt, oldopt)) ()
         liftIO $ yield
 
       while $ receiveWait [

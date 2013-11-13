@@ -168,8 +168,9 @@ setupOptionDialog builder callbacks initArgs = do
           case respId of 
             ResponseUser 1 -> do
                 newOptions <- collectOptions builder
+                oldOptions <- readIORef options 
                 writeIORef options newOptions
-                optionChangedCallback callbacks newOptions
+                optionChangedCallback callbacks newOptions oldOptions
             ResponseUser 2 -> return ()
             _ -> return ()
           widgetHideAll optionDialog

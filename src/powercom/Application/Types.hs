@@ -24,7 +24,7 @@ data GuiCallbacks = GuiCallbacks {
       sendMessageCallback   :: String -> IO ()
     , connectCallback       :: IO ()
     , disconnectCallback    :: IO ()
-    , optionChangedCallback :: ChannelOptions -> IO ()
+    , optionChangedCallback :: ChannelOptions -> ChannelOptions -> IO ()
 }
 
 data GuiApi = GuiApi {

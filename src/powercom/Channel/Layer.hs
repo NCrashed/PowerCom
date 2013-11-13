@@ -25,6 +25,11 @@ import Utility (while, exitMsg)
 import Control.Distributed.Process
 import qualified Data.ByteString as BS
 import Data.IORef 
+import Data.Functor
+import Data.List
+import Control.Applicative
+
+import Debug.Trace
 
 connect :: ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String) -> Process Bool
 connect physLayerId connRef optionsRef (senderId, _) = do
@@ -89,18 +94,27 @@ sendMessage physLayerId connRef optionsRef (senderId, _, msg) = do
         frameBuffer :: String -> BS.ByteString
         frameBuffer uname = toByteString $ InformationFrame uname msg
 
-changeOptions :: ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String, ChannelOptions) -> Process Bool 
-changeOptions physLayerId connRef optionsRef (senderId, _, options) = do 
+changeOptions :: ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String, ChannelOptions, ChannelOptions) -> Process Bool 
+changeOptions physLayerId connRef optionsRef (senderId, _, options, oldOptions) = do 
     thisId <- getSelfPid
     liftIO $ writeIORef optionsRef options
     send physLayerId (thisId, "reopen", options)
     ifConnected True connRef senderId $ do 
         send senderId (thisId, "info", "Changing options...")
-        send physLayerId (thisId, "send", frameBuffer)
-        return True
+        case userName oldOptions == userName options of 
+            False  -> send physLayerId (thisId, "send", frameBufferWithRemoteNames) >> return True
+            True   -> send physLayerId (thisId, "send", frameBuffer) >> return True
     where
         frameBuffer :: BS.ByteString
-        frameBuffer = toByteString $ OptionFrame $ getOptionPairs options 
+        frameBuffer = toByteString $ OptionFrame optionPairs
+
+        frameBufferWithRemoteNames :: BS.ByteString
+        frameBufferWithRemoteNames = toByteString $ OptionFrame $ optionPairs ++
+            [("remoteNameNew", userName options)
+            ,("remoteNameOld", userName oldOptions)] 
+            
+        optionPairs :: [(String, String)]
+        optionPairs = getOptionPairs options 
             [ "portSpeed"
             , "portStopBits"
             , "portParityBits"
@@ -129,6 +143,12 @@ receiveFrame physLayerId transitId connRef optionsRef (_, _, byteFrame) = do
         Right frame -> case frame of 
             InformationFrame name msg -> send transitId (thisId, "message", name, msg) >> return True
             OptionFrame props         -> do 
+                case getRemoteNames props of 
+                    Just (newName, oldName) -> do 
+                        -- send transitId (thisId, "info", "Remote name changing")--, new name " ++ newName)
+                        send transitId (thisId, "disconnect", oldName)
+                        send transitId (thisId, "connect", newName)
+                    Nothing -> return ()
                 let newOptions = updateOptionsFromPairs props options
                 liftIO $ writeIORef optionsRef newOptions
                 send physLayerId (thisId, "reopen", newOptions)
@@ -156,6 +176,11 @@ receiveFrame physLayerId transitId connRef optionsRef (_, _, byteFrame) = do
     return True
     where 
         (frameResult,_) = fromByteString byteFrame 
+        getRemoteNames :: [(String, String)] -> Maybe (String, String)
+        getRemoteNames props = (,) <$> getValue props "remoteNameNew" <*> getValue props "remoteNameOld"
+
+        getValue :: [(String, String)] -> String -> Maybe String 
+        getValue props key = snd <$> find (\(k, _) -> k == key) props
 
 initChannelLayer :: ProcessId -> ChannelOptions -> Process ProcessId
 initChannelLayer appLayer options = do
@@ -165,15 +190,15 @@ initChannelLayer appLayer options = do
         connRef    <- liftIO $ newIORef False
         physLayerId <- initPhysicalLayer options thisId
         while $ receiveWait [
-              matchIf (\(_, com)    -> com == "exit")       $ exitMsg
-            , matchIf (\(_, com, _) -> com == "send")       $ sendMessage   physLayerId connRef optionsRef
-            , matchIf (\(_, com)    -> com == "connect")    $ connect       physLayerId connRef optionsRef
-            , matchIf (\(_, com)    -> com == "disconnect") $ disconnect    physLayerId connRef optionsRef
-            , matchIf (\(_, com, _) -> com == "options")    $ changeOptions physLayerId connRef optionsRef
+              matchIf (\(_, com)       -> com == "exit")       $ exitMsg
+            , matchIf (\(_, com, _)    -> com == "send")       $ sendMessage   physLayerId connRef optionsRef
+            , matchIf (\(_, com)       -> com == "connect")    $ connect       physLayerId connRef optionsRef
+            , matchIf (\(_, com)       -> com == "disconnect") $ disconnect    physLayerId connRef optionsRef
+            , matchIf (\(_, com, _, _) -> com == "options")    $ changeOptions physLayerId connRef optionsRef
             -- From physical layer
-            , matchIf (\(_, com, _) -> com == "error")   $ transitError   appLayer
-            , matchIf (\(_, com, _) -> com == "info")    $ transitInfo    appLayer
-            , matchIf (\(_, com, _) -> com == "frame")   $ receiveFrame   physLayerId appLayer connRef optionsRef]
+            , matchIf (\(_, com, _)    -> com == "error")      $ transitError   appLayer
+            , matchIf (\(_, com, _)    -> com == "info")       $ transitInfo    appLayer
+            , matchIf (\(_, com, _)    -> com == "frame")      $ receiveFrame   physLayerId appLayer connRef optionsRef]
 
         send physLayerId (thisId, "exit")
     return id
