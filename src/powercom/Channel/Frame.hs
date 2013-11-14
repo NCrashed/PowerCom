@@ -50,13 +50,15 @@ frameEndByte = 0xFF
 frameType :: Frame -> Word8
 frameType frame = case frame of 
                     InformationFrame _ _ -> 0x00
-                    LinkFrame        _   -> 0x01
-                    UnlinkFrame      _   -> 0x02
-                    AckFrame             -> 0x03
-                    RetFrame             -> 0x04
-                    OptionFrame      _   -> 0x05
+                    DataPartFrame _      -> 0x01
+                    LinkFrame        _   -> 0x02
+                    UnlinkFrame      _   -> 0x03
+                    AckFrame             -> 0x04
+                    RetFrame             -> 0x05
+                    OptionFrame      _   -> 0x06
 
-data Frame = InformationFrame String String
+data Frame = InformationFrame String Word32
+             | DataPartFrame String
              | OptionFrame [(String, String)]
              | LinkFrame   String 
              | UnlinkFrame String 
@@ -65,7 +67,8 @@ data Frame = InformationFrame String String
              deriving (Show, Eq)
  
 instance Arbitrary Frame where
-    arbitrary = oneof [ InformationFrame <$> (arbitrary :: Gen String) <*> (arbitrary :: Gen String)
+    arbitrary = oneof [ InformationFrame <$> (arbitrary :: Gen String) <*> (arbitrary :: Gen Word32)
+                      , DataPartFrame <$> (arbitrary :: Gen String)
                       , LinkFrame   <$> (arbitrary :: Gen String)
                       , UnlinkFrame <$> (arbitrary :: Gen String)
                       , return AckFrame
@@ -75,7 +78,6 @@ instance Arbitrary Frame where
     shrink (OptionFrame os) = [OptionFrame nos | nos <- shrink os]
     shrink _ = []
 
-
 int2word :: Int -> Word8 
 int2word = fromInteger . toInteger
 
@@ -84,7 +86,8 @@ word2int = fromInteger . toInteger
 
 instance FrameClass Frame where
     toByteString frame = BS.concat . BL.toChunks $ runPut $ case frame of 
-                            InformationFrame u s -> putBounded $ putMarkedString u >> putMarkedString s
+                            InformationFrame u n -> putBounded $ putMarkedString u >> putWord32be n
+                            DataPartFrame s      -> putBounded $ putMarkedString s 
                             LinkFrame   u        -> putBounded $ putMarkedString u
                             UnlinkFrame u        -> putBounded $ putMarkedString u
                             AckFrame             -> putShort
@@ -109,12 +112,13 @@ instance FrameClass Frame where
                                         True  -> do
                                             frameType <- getWord8
                                             frame <- case frameType of
-                                                0x00 -> return InformationFrame `ap` parseMarkedString `ap` parseMarkedString
-                                                0x01 -> return LinkFrame   `ap` parseMarkedString
-                                                0x02 -> return UnlinkFrame `ap` parseMarkedString
-                                                0x03 -> return AckFrame
-                                                0x04 -> return RetFrame
-                                                0x05 -> return OptionFrame `ap` parseKeyValue
+                                                0x00 -> return InformationFrame `ap` parseMarkedString `ap` getWord32be
+                                                0x01 -> return DataPartFrame `ap` parseMarkedString
+                                                0x02 -> return LinkFrame   `ap` parseMarkedString
+                                                0x03 -> return UnlinkFrame `ap` parseMarkedString
+                                                0x04 -> return AckFrame
+                                                0x05 -> return RetFrame
+                                                0x06 -> return OptionFrame `ap` parseKeyValue
                                                 _    -> fail "Unknown frame type!"
                                             end <- getWord8
                                             case (end == frameEndByte) of

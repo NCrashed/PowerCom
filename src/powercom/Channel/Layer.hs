@@ -19,6 +19,7 @@ module Channel.Layer (
 
 import Channel.Options
 import Channel.Frame 
+import Channel.Buffer
 import Physical.Layer 
 import Utility (while, exitMsg)
 
@@ -27,9 +28,8 @@ import qualified Data.ByteString as BS
 import Data.IORef 
 import Data.Functor
 import Data.List
+import Data.Word
 import Control.Applicative
-
-import Debug.Trace
 
 connect :: ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String) -> Process Bool
 connect physLayerId connRef optionsRef (senderId, _) = do
@@ -89,10 +89,25 @@ sendMessage :: ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, St
 sendMessage physLayerId connRef optionsRef (senderId, _, msg) = do 
     thisId <- getSelfPid
     options <- liftIO $ readIORef optionsRef
-    ifConnected False connRef senderId $ send physLayerId (thisId, "send", frameBuffer $ userName options) >> return True
+    ifConnected False connRef senderId $ do
+        mapM_ (\b -> send physLayerId (thisId, "send", b)) $ frameBuffers $ userName options
+        return True
     where
-        frameBuffer :: String -> BS.ByteString
-        frameBuffer uname = toByteString $ InformationFrame uname msg
+        frameBuffers :: String -> [BS.ByteString]
+        frameBuffers uname = startFrame : (dataFrames msg)
+            where  
+                lengthInFrame :: Int 
+                lengthInFrame = 200
+
+                startFrame :: BS.ByteString
+                startFrame = toByteString $ InformationFrame uname $ fromIntegral dataFramesCount
+
+                dataFramesCount :: Int 
+                dataFramesCount = ((length msg) `quot` lengthInFrame) + 1
+
+                dataFrames :: String -> [BS.ByteString]
+                dataFrames [] = []
+                dataFrames s =  (toByteString $ DataPartFrame $ take lengthInFrame s) : (dataFrames $ drop lengthInFrame s)
 
 changeOptions :: ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String, ChannelOptions, ChannelOptions) -> Process Bool 
 changeOptions physLayerId connRef optionsRef (senderId, _, options, oldOptions) = do 
@@ -132,8 +147,9 @@ transitInfo transitId (_, _, msg) = do
     send transitId (thisId, "info", msg)
     return True
 
-receiveFrame :: ProcessId -> ProcessId -> IORef Bool -> IORef ChannelOptions -> (ProcessId, String, BS.ByteString) -> Process Bool 
-receiveFrame physLayerId transitId connRef optionsRef (_, _, byteFrame) = do 
+receiveFrame :: ProcessId -> ProcessId -> MessageBuffer -> IORef Bool -> IORef ChannelOptions 
+    -> (ProcessId, String, BS.ByteString) -> Process Bool 
+receiveFrame physLayerId transitId messageBuffer connRef optionsRef (_, _, byteFrame) = do 
     thisId <- getSelfPid
     options <- liftIO $ readIORef optionsRef
     case frameResult of 
@@ -141,11 +157,22 @@ receiveFrame physLayerId transitId connRef optionsRef (_, _, byteFrame) = do
             send transitId (thisId, "error", "Failed to recieve frame: " ++ err)
             return True
         Right frame -> case frame of 
-            InformationFrame name msg -> send transitId (thisId, "message", name, msg) >> return True
+            InformationFrame name n -> do
+                liftIO $ clearBuffer messageBuffer name (word2int n)
+                return True
+            DataPartFrame s -> do
+                liftIO $ addMessagePart messageBuffer s 
+                filled <- liftIO $ isMessageReady messageBuffer
+                case filled of 
+                    True  -> do
+                        (name, msg) <- liftIO $ collectMessage messageBuffer
+                        send transitId (thisId, "message", name, msg)
+                        return True
+                    False -> return True
             OptionFrame props         -> do 
                 case getRemoteNames props of 
                     Just (newName, oldName) -> do 
-                        -- send transitId (thisId, "info", "Remote name changing")--, new name " ++ newName)
+                        send transitId (thisId, "info", "Remote name changing, " ++ oldName ++ " to " ++ newName)
                         send transitId (thisId, "disconnect", oldName)
                         send transitId (thisId, "connect", newName)
                     Nothing -> return ()
@@ -182,12 +209,16 @@ receiveFrame physLayerId transitId connRef optionsRef (_, _, byteFrame) = do
         getValue :: [(String, String)] -> String -> Maybe String 
         getValue props key = snd <$> find (\(k, _) -> k == key) props
 
+        word2int :: Word32 -> Int 
+        word2int = fromInteger . toInteger
+
 initChannelLayer :: ProcessId -> ChannelOptions -> Process ProcessId
 initChannelLayer appLayer options = do
     id <- spawnLocal $ do
         thisId <- getSelfPid
         optionsRef <- liftIO $ newIORef options
         connRef    <- liftIO $ newIORef False
+        messageBuffer <- liftIO $ initMessageBuffer
         physLayerId <- initPhysicalLayer options thisId
         while $ receiveWait [
               matchIf (\(_, com)       -> com == "exit")       $ exitMsg
@@ -198,7 +229,7 @@ initChannelLayer appLayer options = do
             -- From physical layer
             , matchIf (\(_, com, _)    -> com == "error")      $ transitError   appLayer
             , matchIf (\(_, com, _)    -> com == "info")       $ transitInfo    appLayer
-            , matchIf (\(_, com, _)    -> com == "frame")      $ receiveFrame   physLayerId appLayer connRef optionsRef]
+            , matchIf (\(_, com, _)    -> com == "frame")      $ receiveFrame   physLayerId appLayer messageBuffer connRef optionsRef]
 
         send physLayerId (thisId, "exit")
     return id
