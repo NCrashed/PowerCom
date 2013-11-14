@@ -4,8 +4,10 @@
   <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkTextBuffer" id="MessageAreaBuffer"/>
   <object class="GtkWindow" id="MainWindow">
+    <property name="width_request">600</property>
+    <property name="height_request">400</property>
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Talk Comotron - Чат через RS-232C</property>
+    <property name="title" translatable="yes">Talk Comotron - Chat within RS-232C</property>
     <child>
       <object class="GtkVBox" id="box1">
         <property name="visible">True</property>
@@ -18,7 +20,7 @@
               <object class="GtkMenuItem" id="FileItem">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_Файл</property>
+                <property name="label" translatable="yes">File</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
                   <object class="GtkMenu" id="FileMenu">
@@ -26,7 +28,7 @@
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkImageMenuItem" id="OpenItem">
-                        <property name="label" translatable="yes">Открыть</property>
+                        <property name="label" translatable="yes">Open history</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="image">image2</property>
@@ -74,7 +76,7 @@
               <object class="GtkMenuItem" id="EditItem">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_Правка</property>
+                <property name="label" translatable="yes">Edit</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
                   <object class="GtkMenu" id="menu2">
@@ -82,7 +84,7 @@
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkImageMenuItem" id="OptionItem">
-                        <property name="label" translatable="yes">Настройка</property>
+                        <property name="label" translatable="yes">Options</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_underline">True</property>
@@ -98,7 +100,7 @@
               <object class="GtkMenuItem" id="HelpItem">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_Справка</property>
+                <property name="label" translatable="yes">Help</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
                   <object class="GtkMenu" id="HelpMenu">
@@ -207,7 +209,7 @@
                 <property name="model">UserNameStore</property>
                 <child>
                   <object class="GtkTreeViewColumn" id="iconcol">
-                    <property name="title" translatable="yes">Иконка</property>
+                    <property name="title" translatable="yes">Icon</property>
                     <child>
                       <object class="GtkCellRendererPixbuf" id="cellrendererpixbuf1"/>
                       <attributes>
@@ -219,7 +221,7 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="namecol">
-                    <property name="title" translatable="yes">Имя</property>
+                    <property name="title" translatable="yes">Name</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext1"/>
                       <attributes>
@@ -248,7 +250,7 @@
             <property name="can_focus">False</property>
             <child>
               <object class="GtkButton" id="SendButton">
-                <property name="label" translatable="yes">От_править</property>
+                <property name="label" translatable="yes">Send</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
