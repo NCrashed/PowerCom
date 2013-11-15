@@ -17,9 +17,15 @@ module Channel.CyclicCode (
       codeCyclic
     , decodeCyclic
     , prop_codeDecodeEq
+    , prop_polyConverting
+    , prop_Word8BitCount
+    , prop_quotRemPoly
+    , prop_simpleCoding
+    , prop_fullCodingDecoding
     ) where
 
 import qualified Data.ByteString as BS 
+import qualified Data.ByteString.Char8 as CH
 import Math.Polynomial
 import Data.List
 import Data.Bits
@@ -27,31 +33,59 @@ import Data.Sequence (foldrWithIndex, fromList)
 import Data.Word 
 import Control.Monad
 
+import Debug.Trace
+
 type Word4 = Word8 -- only for semantic concise
 type Word3 = Word8
 type Word7 = Word8
 
-instance Fractional Int where
-    (/) a b = if a == 0 then 0 else 1
+data Bit = Bit Bool 
+    deriving Eq 
+
+instance Show Bit where
+    show (Bit val) = if val then "1" else "0"
+
+instance Num Bit where
+    (+) (Bit a) (Bit b) = case (a, b) of
+        (True, True) -> Bit False
+        (_, True)    -> Bit True
+        (True, _)    -> Bit True
+        _            -> Bit False
+
+    (-) = (+)
+    (*) (Bit a) (Bit b) = case (a, b) of
+        (False, _)   -> Bit False
+        (_, False)   -> Bit False
+        _            -> Bit True
+
+    abs ba = ba 
+    signum ba = ba
+    fromInteger int = if int > 0 then Bit True else Bit False
+
+instance Fractional Bit where
+    (/) ba _ = ba
     fromRational = undefined
 
-word8ToPoly :: Word8 -> Poly Int
-word8ToPoly wd = poly BE $ map (\i -> if testBit wd i then 1 else 0) [1 .. bitSize wd]
+word8ToPoly :: Word8 -> Poly Bit
+word8ToPoly wd = poly LE $ map 
+    (\i -> if testBit wd i then Bit True else Bit False) [0 .. (bitSize wd)-1]
 
-polyToWord8 :: Poly Int -> Word8 
-polyToWord8 = foldrWithIndex coeff2Bit (fromIntegral 0) . fromList . polyCoeffs BE
+polyToWord8 :: Poly Bit -> Word8 
+polyToWord8 = foldrWithIndex coeff2Bit (fromIntegral 0) . fromList . polyCoeffs LE
     where
-        coeff2Bit :: Int -> Int -> Word8 -> Word8 
-        coeff2Bit i coeff acc = if coeff > 0 then acc `setBit` i else acc
+        coeff2Bit :: Int -> Bit -> Word8 -> Word8 
+        coeff2Bit i (Bit b) acc = if b then acc `setBit` i else acc
 
 codeCyclic :: BS.ByteString -> BS.ByteString
-codeCyclic =  BS.pack . concatMap (\(a,b) -> [a, b]) . map codeWord8 . BS.unpack 
+codeCyclic = BS.pack . concatMap (\(a,b) -> [a, b]) . map codeWord8 . BS.unpack 
 
 codeWord8 :: Word8 -> (Word7, Word7)
-codeWord8 wd = (codeWord4 $ (wd .&. 0xF0) `shiftL` 4, codeWord4 $ wd .&. 0x0F)
+codeWord8 wd = (codeWord4 highWord, codeWord4 lowWord)
+    where highWord = (wd .&. 0xF0) `shiftR` 4
+          lowWord  = wd .&. 0x0F
 
 codeWord4 :: Word4 -> Word7 -- n = 7 k = 4 
-codeWord4 wd = polyToWord8 finalPoly
+codeWord4 wd = (polyToWord8 finalPoly)
     where
         polyGen     = poly BE [1,0,1,1]
         wordPoly    = word8ToPoly wd
@@ -63,7 +97,11 @@ decodeCyclic :: BS.ByteString -> Maybe BS.ByteString
 decodeCyclic = mPack . sequence . map decodeWord8 . makePairs . BS.unpack
     where
         mPack = liftM BS.pack
-        makePairs ls = zip ls $ drop 1 ls
+
+makePairs :: [a] -> [(a, a)]
+makePairs [] = []
+makePairs (x:[]) = []
+makePairs (x1:x2:xs) = (x1, x2) : makePairs xs
 
 decodeWord8 :: (Word7, Word7) -> Maybe Word8 
 decodeWord8 (a, b) = (mShiftL4 $ decodeWord4 a) `mOr` (decodeWord4 b)
@@ -84,3 +122,28 @@ prop_codeDecodeEq :: Word8 -> Bool
 prop_codeDecodeEq wd = case decodeWord8 $ codeWord8 wd of
     Nothing  -> False
     Just val -> wd == val
+
+prop_polyConverting :: Word8 -> Bool 
+prop_polyConverting wd = wd == (polyToWord8 $ word8ToPoly wd)
+
+prop_Word8BitCount :: Word8 -> Bool
+prop_Word8BitCount wd = bitSize wd == 8
+
+prop_quotRemPoly :: Word8 -> Word8 -> Bool
+prop_quotRemPoly a b = if b == 0 then True else newa == pa
+    where newa   = addPoly (multPoly q pb) r
+          (q, r) = quotRemPoly pa pb
+          pa = word8ToPoly a 
+          pb = word8ToPoly b
+
+prop_simpleCoding :: Word8 -> Bool
+prop_simpleCoding wd = case decodeWord4 $ codeWord4 cutedWd of
+    Nothing -> False
+    Just val -> val == cutedWd
+    where cutedWd = wd .&. 0x0F
+
+prop_fullCodingDecoding :: String -> Bool
+prop_fullCodingDecoding s = case decodeCyclic $ codeCyclic bs of
+    Nothing -> False
+    Just val -> val == bs 
+    where bs = CH.pack s

@@ -31,7 +31,12 @@ tests = [
                 testProperty "toByteString"           prop_toByteString
             ],
         testGroup "QuickCheck Channel.CyclicCode" [
-                testProperty "Coding decoding same word" prop_codeDecodeEq
+                 testProperty "Coding decoding same word" prop_codeDecodeEq
+               , testProperty "Convertion word to/from poly" prop_polyConverting
+               , testProperty "Bits in word8" prop_Word8BitCount
+               , testProperty "Poly division correctness" prop_quotRemPoly
+               , testProperty "Simple coding word4" prop_simpleCoding
+               , testProperty "Full bytestring coding/decoding" prop_fullCodingDecoding
             ]
         -- For future HUnit integration
         --testGroup "Point tests Data.Decimal" [
