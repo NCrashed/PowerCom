@@ -24,28 +24,29 @@ module Channel.Buffer (
 
 import Data.List 
 import Data.IORef 
+import Control.Distributed.Process
 
 type MessageBuffer = IORef (String, [String], Int)
 
-initMessageBuffer ::IO MessageBuffer
-initMessageBuffer = newIORef ("", [], 0)
+initMessageBuffer :: Process MessageBuffer
+initMessageBuffer = liftIO $ newIORef ("", [], 0)
 
-addMessagePart :: MessageBuffer -> String -> IO ()
-addMessagePart buff s = do
+addMessagePart :: MessageBuffer -> String -> Process ()
+addMessagePart buff s = liftIO $ do
     (name, raw, n) <- readIORef buff 
     case length raw < n of
         True -> writeIORef buff $ (name, raw ++ [s], n)
         False -> return ()
 
-isMessageReady :: MessageBuffer -> IO Bool
-isMessageReady buff = do
+isMessageReady :: MessageBuffer -> Process Bool
+isMessageReady buff = liftIO $ do
     (_, raw, n) <- readIORef buff 
     return $ length raw == n
 
-collectMessage :: MessageBuffer -> IO (String, String)
-collectMessage buff = do
+collectMessage :: MessageBuffer -> Process (String, String)
+collectMessage buff = liftIO $ do
     (name, raw, n) <- readIORef buff 
     return (name, concat raw)
 
-clearBuffer :: MessageBuffer -> String -> Int -> IO ()
-clearBuffer buff name n = writeIORef buff (name, [], n)
+clearBuffer :: MessageBuffer -> String -> Int -> Process ()
+clearBuffer buff name n = liftIO $ writeIORef buff (name, [], n)
