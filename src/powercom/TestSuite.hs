@@ -37,6 +37,8 @@ tests = [
                , testProperty "Poly division correctness" prop_quotRemPoly
                , testProperty "Simple coding word4" prop_simpleCoding
                , testProperty "Full bytestring coding/decoding" prop_fullCodingDecoding
+               , testProperty "Error coding word4" prop_falseWord4Coding
+               , testProperty "Error coding word8" prop_falseWord8Coding
             ]
         -- For future HUnit integration
         --testGroup "Point tests Data.Decimal" [

@@ -22,6 +22,8 @@ module Channel.CyclicCode (
     , prop_quotRemPoly
     , prop_simpleCoding
     , prop_fullCodingDecoding
+    , prop_falseWord4Coding
+    , prop_falseWord8Coding
     ) where
 
 import qualified Data.ByteString as BS 
@@ -32,8 +34,7 @@ import Data.Bits
 import Data.Sequence (foldrWithIndex, fromList)
 import Data.Word 
 import Control.Monad
-
-import Debug.Trace
+import Test.QuickCheck hiding ( (.&.) ) 
 
 type Word4 = Word8 -- only for semantic concise
 type Word3 = Word8
@@ -147,3 +148,24 @@ prop_fullCodingDecoding s = case decodeCyclic $ codeCyclic bs of
     Nothing -> False
     Just val -> val == bs 
     where bs = CH.pack s
+
+newtype BitError = BitError Int 
+    deriving (Eq, Show)
+
+instance Arbitrary BitError where
+    arbitrary = oneof $ map (return . BitError) [0 .. 7]
+    shrink _ = []
+
+prop_falseWord4Coding :: Word8 -> BitError -> Bool
+prop_falseWord4Coding wd (BitError i) = case decodeWord4 $ complementBit (codeWord4 cutedWd) i of 
+    Nothing -> True
+    Just _ -> False 
+    where cutedWd = wd .&. 0x0F
+
+prop_falseWord8Coding :: Word8 -> BitError -> BitError -> Bool
+prop_falseWord8Coding wd (BitError i1) (BitError i2) = 
+    case decodeWord8 $ (cwd1 `complementBit` i1, cwd2 `complementBit` i2) of
+        Nothing -> True
+        Just _ -> False
+    where 
+        (cwd1, cwd2) = codeWord8 wd
