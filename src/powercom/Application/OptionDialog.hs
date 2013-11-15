@@ -143,7 +143,7 @@ setupOptionDialog builder callbacks initArgs = do
     parityBitMatch <- createEnumCombo parityBitCombo parityBit2String [Even, Odd, NoParity]
 
     wordBitCombo <- builderGetObject builder castToComboBox "WordBitCombo"
-    wordBitMatch <- createEnumCombo wordBitCombo show [7,8,9]
+    wordBitMatch <- createEnumCombo wordBitCombo show [7,8]
 
     let mappings = OptionMappings
             {

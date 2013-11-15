@@ -19,6 +19,8 @@ Test-Suite PowerCom-Test
                    , bytestring
                    , binary
                    , binary-strict
+                   , polynomial
+                   , containers
                    , QuickCheck >= 2.0
                    , distributed-process
                    , distributed-process-simplelocalnet
@@ -37,6 +39,8 @@ Executable PowerCom
                           , bytestring
                           , binary
                           , binary-strict
+                          , polynomial
+                          , containers
                           , QuickCheck >= 2.0
                           , distributed-process
                           , distributed-process-simplelocalnet

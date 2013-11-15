@@ -15,8 +15,8 @@
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
 module Main (main) where
 
---import ApplicationLevel
 import Channel.Frame
+import Channel.CyclicCode
 
 import Test.Framework as TF (defaultMain, testGroup, Test)
 --import Test.Framework.Providers.HUnit
@@ -29,7 +29,10 @@ tests :: [TF.Test]
 tests = [
         testGroup "QuickCheck Channel.Frame" [
                 testProperty "toByteString"           prop_toByteString
-                ]
+            ],
+        testGroup "QuickCheck Channel.CyclicCode" [
+                testProperty "Coding decoding same word" prop_codeDecodeEq
+            ]
         -- For future HUnit integration
         --testGroup "Point tests Data.Decimal" [
         --        testCase "pi to 3dp"     (dec 3 3142  @=? realFracToDecimal 3 piD)]

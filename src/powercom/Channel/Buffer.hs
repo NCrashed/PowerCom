@@ -32,20 +32,20 @@ initMessageBuffer = newIORef ("", [], 0)
 
 addMessagePart :: MessageBuffer -> String -> IO ()
 addMessagePart buff s = do
-	(name, raw, n) <- readIORef buff 
-	case length raw < n of
-		True -> writeIORef buff $ (name, raw ++ [s], n)
-		False -> return ()
+    (name, raw, n) <- readIORef buff 
+    case length raw < n of
+        True -> writeIORef buff $ (name, raw ++ [s], n)
+        False -> return ()
 
 isMessageReady :: MessageBuffer -> IO Bool
 isMessageReady buff = do
-	(_, raw, n) <- readIORef buff 
-	return $ length raw == n
+    (_, raw, n) <- readIORef buff 
+    return $ length raw == n
 
 collectMessage :: MessageBuffer -> IO (String, String)
 collectMessage buff = do
-	(name, raw, n) <- readIORef buff 
-	return (name, concat raw)
+    (name, raw, n) <- readIORef buff 
+    return (name, concat raw)
 
 clearBuffer :: MessageBuffer -> String -> Int -> IO ()
 clearBuffer buff name n = writeIORef buff (name, [], n)

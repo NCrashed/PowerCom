@@ -20,6 +20,7 @@ module Channel.Layer (
 import Channel.Options
 import Channel.Frame 
 import Channel.Buffer
+import Channel.CyclicCode
 import Physical.Layer 
 import Utility (while, exitMsg)
 
