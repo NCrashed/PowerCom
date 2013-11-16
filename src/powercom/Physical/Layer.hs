@@ -21,10 +21,12 @@ import Control.Distributed.Process
 import qualified Data.ByteString                as BS
 import qualified Data.ByteString.Lazy           as BL
 import qualified System.Hardware.Serialport     as Serial
-import Data.Binary.Strict.Get
-import Data.Binary.Put
+import Data.Binary.Strict.Get 
+import Data.Binary.Put 
 import Data.Word 
 import Data.IORef
+import Data.Typeable
+import Data.Binary (Binary)
 import Control.Exception (SomeException)
 import Control.Monad (forever)
 import Control.Concurrent (yield)
@@ -45,7 +47,9 @@ initPort channel = do
 closePort :: PortState -> Process ()
 closePort portState = do
     (port, opened) <- liftIO $ readIORef portState
-    if opened then liftIO $ Serial.closeSerial port
+    if opened then liftIO $ do 
+        Serial.closeSerial port
+        writeIORef portState (port, False)
     else return ()
 
 reopenPort :: PortState -> ChannelOptions -> Process (Maybe String)
@@ -101,19 +105,28 @@ receiveFrameCycle channelId portState = do
         case frameResult of 
             Right bs -> send channelId (thisId, "frame", bs)
             Left err -> send channelId (thisId, "error", "Error while receiving frame: " ++ err ++ "!")
-                
+
+serialSendSafe :: PortState -> BS.ByteString -> Process (Maybe Int)
+serialSendSafe portState msg = do 
+    (port, _) <- liftIO $ readIORef portState
+    res <- try (liftIO $ Serial.send port msg) :: Process (Either SomeException Int)
+    case res of 
+        Left err -> return Nothing
+        Right l -> return $ Just l 
+
 sendFrame :: PortState -> BS.ByteString -> Process (Maybe String)
 sendFrame portState msg = do
-    (port, opened) <- liftIO $ readIORef portState
+    (_, opened) <- liftIO $ readIORef portState
     if opened == False then return Nothing
     else do
-        sendedLength <- liftIO $ Serial.send port bsLength
-        if sendedLength == 4 then do 
-            sendedMsg <- liftIO $ Serial.send port msg 
-            if sendedMsg == frameLength 
-                then return Nothing
-                else return $ Just "Failed to send frame body!"
-        else return $ Just "Failed to send frame length!"
+        sendLengthRes <- serialSendSafe portState bsLength
+        case sendLengthRes of 
+            Just 4 -> do 
+                sendedMsgRes <- serialSendSafe portState msg 
+                case sendedMsgRes of
+                    Just frameLength -> return Nothing
+                    _                -> return $ Just "Failed to send frame body!"
+            _ -> return $ Just "Failed to send frame length!"
         where
             bsLength :: BS.ByteString
             bsLength = toStrict $ runPut $ putWord32be $ fromIntegral frameLength
@@ -122,7 +135,7 @@ sendFrame portState msg = do
 sendFrameHandler :: PortState -> (ProcessId, String, BS.ByteString) -> Process Bool
 sendFrameHandler portState (senderId, _, msg) = do 
     thisId <- getSelfPid
-    result <- sendFrame portState msg 
+    result <- sendFrame portState msg
     case result of 
         Nothing -> return True
         Just err -> do
@@ -136,6 +149,11 @@ reopenPortHandler portState (senderId, _, options) = do
     case res of
         Just err -> send senderId False >> send senderId (thisId, "error", err) >> return True
         Nothing  -> send senderId True  >> return True
+
+closePortHandler :: PortState -> (ProcessId, String) -> Process Bool 
+closePortHandler portState (_, _) = do 
+    closePort portState
+    return True
 
 physicalLayerCycle :: ChannelOptions -> ProcessId -> Process ()
 physicalLayerCycle options channelId = do
@@ -152,7 +170,8 @@ physicalLayerCycle options channelId = do
             while $ receiveWait [
                   matchIf (\(_, com)    -> com == "exit")       exitMsg
                 , matchIf (\(_, com, _) -> com == "send")       (sendFrameHandler port)
-                , matchIf (\(_, com, _) -> com == "reopen")     (reopenPortHandler port)]
+                , matchIf (\(_, com, _) -> com == "reopen")     (reopenPortHandler port)
+                , matchIf (\(_, com) -> com == "close")         (closePortHandler port)]
 
             closePort port
         Left ex -> do

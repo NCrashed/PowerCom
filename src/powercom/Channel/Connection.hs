@@ -18,11 +18,14 @@ module Channel.Connection (
     , initConnection
     , closeConnection
     , openConnection
+    , setRemoteUsername
+    , remoteUserName
     , ifConnectedWithError
     , ifConnected 
     , ifNotConnected
     , connectHandler
     , disconnectHandler
+    , sendFrameWithDisconnect
     ) where
 
 import Channel.Options
@@ -31,21 +34,36 @@ import Channel.Miscs
 import Channel.Frame 
 
 import Data.IORef
+import Data.Functor
 import Control.Distributed.Process
 
-type Connection = IORef Bool
+-- | Connection is bool value with remote user name
+type Connection = IORef (Bool, String)
 
 initConnection :: Process Connection
-initConnection = liftIO $ newIORef False
+initConnection = liftIO $ newIORef (False, "")
 
 closeConnection :: Connection -> Process () 
-closeConnection conn = liftIO $ writeIORef conn False
+closeConnection conn = liftIO $ do
+    (_, uname) <- readIORef conn 
+    writeIORef conn (False, uname)
 
+-- User name is sended with link frame 
 openConnection :: Connection -> Process ()
-openConnection conn = liftIO $ writeIORef conn True
+openConnection conn = liftIO $ do 
+    (_, uname) <- readIORef conn 
+    writeIORef conn (True, uname)
 
 isConnected :: Connection -> Process Bool 
-isConnected conn = liftIO $ readIORef conn 
+isConnected conn = liftIO $ fst <$> readIORef conn 
+
+setRemoteUsername :: Connection -> String -> Process ()
+setRemoteUsername conn uname = do 
+    bool <- isConnected conn 
+    liftIO $ writeIORef conn (bool, uname)
+
+remoteUserName :: Connection -> Process String
+remoteUserName conn = liftIO $ snd <$> readIORef conn 
 
 ifConnectedWithError :: Connection -> ProcessId -> Process () -> Process ()
 ifConnectedWithError connRef errorTransitId action = do 
@@ -67,10 +85,10 @@ withConnectionDo state connRef action = do
     if connection == state then action
     else return ()
 
-connectHandler :: ProcessId -> Connection -> IORef ChannelOptions -> (ProcessId, String) -> Process Bool
+connectHandler :: ProcessId -> Connection -> InnerChannelOptions -> (ProcessId, String) -> Process Bool
 connectHandler physLayerId conn optionsRef (senderId, _) = do
     thisId <- getSelfPid
-    options <- liftIO $ readIORef optionsRef
+    options <- getOptions optionsRef
     connection <- isConnected conn
     case connection of 
         False -> do 
@@ -81,22 +99,37 @@ connectHandler physLayerId conn optionsRef (senderId, _) = do
                 True -> do 
                     sendRes <- sendFrameWithAck physLayerId $ LinkFrame $ userName options
                     case sendRes of 
-                        True  -> openConnection conn >> return True
+                        True  -> openConnection conn >> return True -- uname will be sended later
                         False -> do
                             informSenderError senderId "Remote host is not answering!"
                             return True
                 False -> return True
         True -> return True
 
-disconnectHandler :: ProcessId -> Connection -> IORef ChannelOptions -> (ProcessId, String) -> Process Bool
+disconnectHandler :: ProcessId -> Connection -> InnerChannelOptions -> (ProcessId, String) -> Process Bool
 disconnectHandler physLayerId conn optionsRef (senderId, _) = do
     thisId <- getSelfPid
-    options <- liftIO $ readIORef optionsRef
+    options <- getOptions optionsRef
     connection <- isConnected conn
     case connection of 
         True -> do 
             informSender senderId "Disconnecting..."
-            sendFrameWithAck physLayerId $ UnlinkFrame $ userName options
+            sendFrameWithDisconnect conn senderId physLayerId $ UnlinkFrame $ userName options
             closeConnection conn
             return True
         False -> return True
+
+sendFrameWithDisconnect :: Connection -> ProcessId -> ProcessId -> Frame -> Process ()
+sendFrameWithDisconnect conn transitId targetId frame = 
+    disconnectOnFail transitId conn $ sendFrameWithAck targetId frame
+
+disconnectOnFail :: ProcessId -> Connection -> Process Bool -> Process ()
+disconnectOnFail transitId conn action = do 
+    res <- action 
+    if res then return ()
+    else ifConnected conn $ do
+        thisId <- getSelfPid
+        uname <- remoteUserName conn
+        sendDisconnectUser transitId uname
+        informSenderError transitId "Remote host is not answering! Connection closed."
+        closeConnection conn

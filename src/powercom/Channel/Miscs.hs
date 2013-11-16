@@ -25,6 +25,7 @@ module Channel.Miscs (
 
 import Channel.Options
 import Control.Distributed.Process 
+import qualified Data.ByteString as BS
 import Data.Typeable
 
 informSender :: ProcessId -> String -> Process ()

@@ -15,7 +15,11 @@
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
 {-# Language StandaloneDeriving, DeriveDataTypeable #-}
 module Channel.Options (
-      ChannelOptions(..)
+      InnerChannelOptions
+    , initInnerOptions
+    , getOptions
+    , setOptions
+    , ChannelOptions(..)
     , defaultOptions
     , Binary(..)
     , portSpeed2String
@@ -40,6 +44,8 @@ import Data.Binary.Put
 
 import Data.Word
 import Data.Typeable
+import Data.IORef
+import Control.Distributed.Process
 
 deriving instance Typeable CommSpeed
 deriving instance Typeable StopBits
@@ -53,6 +59,17 @@ deriving instance Show StopBits
 deriving instance Eq CommSpeed 
 deriving instance Eq StopBits 
 deriving instance Eq Parity 
+
+type InnerChannelOptions = IORef ChannelOptions
+
+initInnerOptions :: ChannelOptions -> Process InnerChannelOptions
+initInnerOptions opt = liftIO $ newIORef opt 
+
+getOptions :: InnerChannelOptions -> Process ChannelOptions
+getOptions inner = liftIO $ readIORef inner 
+
+setOptions :: InnerChannelOptions -> ChannelOptions -> Process ()
+setOptions inner opt = liftIO $ writeIORef inner opt 
 
 data ChannelOptions =
     ChannelOptions 
