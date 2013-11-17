@@ -27,6 +27,7 @@ import Control.Distributed.Process
 import Control.Monad
 
 import qualified Data.ByteString as BS 
+import Data.Maybe
 
 codeFrame :: Frame -> BS.ByteString 
 codeFrame = codeCyclic . toByteString
@@ -44,7 +45,6 @@ sendFrame targetId frame = do
 
 sendFrameWithAck :: ProcessId -> Frame -> Process Bool
 sendFrameWithAck targetId frame = do 
-    thisId <- getSelfPid
     sendFrame targetId frame
     expectAck sendTries
     where 
@@ -54,15 +54,36 @@ sendFrameWithAck targetId frame = do
         expectAck :: Int -> Process Bool
         expectAck 0 = return False
         expectAck nTries = do 
-            thisId <- getSelfPid
-            expectRes <- expectTimeout timeout :: Process (Maybe (ProcessId, String, BS.ByteString))
-            case expectRes of 
+            res <- receiveTimeout timeout [ -- todo here
+                matchIf innerAckRetMatcher innerAckRetHandler
+              , matchIf (\(_, com, _) -> com == "frame") otherFrameHandler]
+            case res of 
+                Just False -> expectAck nTries
+                Just True -> return True
                 Nothing -> return False
-                Just (_, _, bs) -> case decodeFrame bs of 
-                    Nothing -> return False
-                    Just frame -> case frame of 
+            where
+                innerAckRetMatcher :: (ProcessId, String, BS.ByteString) -> Bool 
+                innerAckRetMatcher (_, com, bs) = if com /= "frame" then False
+                    else case decodeFrame bs of
+                        Just AckFrame -> True
+                        Just RetFrame -> True
+                        _ -> False
+
+                innerAckRetHandler :: (ProcessId, String, BS.ByteString) -> Process Bool
+                innerAckRetHandler (_, _, bs) = case fromJust $ decodeFrame bs of
                         AckFrame -> return True
                         RetFrame -> do 
                            sendFrame targetId frame
                            expectAck $ nTries-1 
-                        _ -> return False
+
+                otherFrameHandler :: (ProcessId, String, BS.ByteString) -> Process Bool
+                otherFrameHandler (_, _, bs) = do
+                    thisId <- getSelfPid
+                    case decodeFrame bs of 
+                        Just frame -> do 
+                            sendFrame targetId AckFrame
+                            send thisId (thisId, "frame-acked", codeFrame $ frame)
+                            return False
+                        _ -> do
+                            sendFrame targetId RetFrame
+                            return False

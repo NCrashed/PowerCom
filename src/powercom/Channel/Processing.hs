@@ -34,7 +34,7 @@ import Data.List
 
 receiveFrameHandler :: ProcessId -> ProcessId -> MessageBuffer -> Connection -> InnerChannelOptions 
     -> (ProcessId, String, BS.ByteString) -> Process Bool 
-receiveFrameHandler physLayerId transitId messageBuffer conn optionsRef (_, _, byteFrame) = do 
+receiveFrameHandler physLayerId transitId messageBuffer conn optionsRef (_, com, byteFrame) = do 
     thisId <- getSelfPid
     options <- getOptions optionsRef
     case decodeFrame byteFrame of 
@@ -43,11 +43,15 @@ receiveFrameHandler physLayerId transitId messageBuffer conn optionsRef (_, _, b
                 AckFrame -> return ()
                 RetFrame -> return ()
                 _ -> do 
-                    sendFrame physLayerId AckFrame
+                    if com /= "frame-acked" -- prevent double sending for not fully processed frames
+                        then sendFrame physLayerId AckFrame 
+                        else return ()
                     processFrame frame options
         _ -> do 
             informSenderError transitId $ "Failed to recieve frame!"
-            sendFrame physLayerId RetFrame
+            if com /= "frame-acked"
+                then sendFrame physLayerId RetFrame
+                else return ()
     return True
     where 
         getRemoteNames :: [(String, String)] -> Maybe (String, String)
@@ -100,3 +104,4 @@ receiveFrameHandler physLayerId transitId messageBuffer conn optionsRef (_, _, b
 
         processFrame (RetFrame) _ = informSender transitId "Main handler got ret frame, it is bad!"
         processFrame (AckFrame) _ = informSender transitId "Main handler got ack frame, it is bad!"
+        processFrame (Upcheck) _ = return () --informSender transitId "Upcheck got"

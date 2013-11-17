@@ -23,16 +23,16 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as C8
 
+import Data.Binary (Binary(..))
 import Data.Functor
 import Data.Maybe
-import Control.Monad
 import Data.Word 
 
 import Data.Binary.Strict.Get
 import Data.Binary.Put
 
 import Control.Concurrent (threadDelay)
-import Control.Monad (forever)
+import Control.Monad
 import Control.Applicative
 
 import Test.QuickCheck
@@ -56,6 +56,7 @@ frameType frame = case frame of
                     AckFrame             -> 0x04
                     RetFrame             -> 0x05
                     OptionFrame      _   -> 0x06
+                    Upcheck              -> 0x07
 
 data Frame = InformationFrame String Word32
              | DataPartFrame String
@@ -64,6 +65,7 @@ data Frame = InformationFrame String Word32
              | UnlinkFrame String 
              | AckFrame    
              | RetFrame    
+             | Upcheck
              deriving (Show, Eq)
  
 instance Arbitrary Frame where
@@ -73,10 +75,20 @@ instance Arbitrary Frame where
                       , UnlinkFrame <$> (arbitrary :: Gen String)
                       , return AckFrame
                       , return RetFrame
-                      , OptionFrame <$> (arbitrary :: Gen [(String, String)])]
+                      , OptionFrame <$> (arbitrary :: Gen [(String, String)])
+                      , return Upcheck]
 
     shrink (OptionFrame os) = [OptionFrame nos | nos <- shrink os]
     shrink _ = []
+
+-- TODO: Move to binary class instead of custom
+{-instance Binary Frame where
+    put = put . toByteString
+    get = do
+        (res, _) <- liftM fromByteString
+        case res of 
+            Right frame -> return frame 
+            Left err -> error err-}
 
 int2word :: Int -> Word8 
 int2word = fromInteger . toInteger
@@ -93,6 +105,7 @@ instance FrameClass Frame where
                             AckFrame             -> putShort
                             RetFrame             -> putShort
                             OptionFrame      os  -> putBounded $ putListLength os >> putOptions os
+                            Upcheck              -> putShort
                          where 
                             putBegin          = putWord8 frameStartByte >> (putWord8 $ frameType frame)
                             putEnd            = putWord8 frameEndByte
@@ -119,6 +132,7 @@ instance FrameClass Frame where
                                                 0x04 -> return AckFrame
                                                 0x05 -> return RetFrame
                                                 0x06 -> return OptionFrame `ap` parseKeyValue
+                                                0x07 -> return Upcheck
                                                 _    -> fail "Unknown frame type!"
                                             end <- getWord8
                                             case (end == frameEndByte) of
