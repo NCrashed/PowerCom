@@ -21,7 +21,7 @@ module Channel.Frame (
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Char8 as C8
+import qualified Data.ByteString.UTF8 as UTF
 
 import Data.Binary (Binary(..))
 import Data.Functor
@@ -90,10 +90,10 @@ instance Arbitrary Frame where
             Right frame -> return frame 
             Left err -> error err-}
 
-int2word :: Int -> Word8 
+int2word :: Int -> Word32 
 int2word = fromInteger . toInteger
 
-word2int :: Word8 -> Int 
+word2int :: Word32 -> Int 
 word2int = fromInteger . toInteger
 
 instance FrameClass Frame where
@@ -110,8 +110,9 @@ instance FrameClass Frame where
                             putBegin          = putWord8 frameStartByte >> (putWord8 $ frameType frame)
                             putEnd            = putWord8 frameEndByte
                             putShort          = putBegin >> putEnd
-                            putListLength     = putWord8 . int2word . length
-                            putMarkedString s = putListLength s >> putByteString (C8.pack s)
+                            putListLength     = putWord32be . int2word . length
+                            putBSLength       = putWord32be . int2word . BS.length
+                            putMarkedString s = let bs = UTF.fromString s in putBSLength bs >> putByteString bs
                             putBounded      m = putBegin >> m >> putEnd
                             putOptions        = mapM_ (\(key,value) -> putMarkedString key >> putMarkedString value)
 
@@ -139,22 +140,22 @@ instance FrameClass Frame where
                                                 False -> fail "Ending byte invalid!"
                                                 True  -> return frame
                                 parseMarkedString = do
-                                    len <- getWord8
+                                    len <- getWord32be
                                     body <- getByteString $ word2int len 
-                                    return $ C8.unpack body
+                                    return $ UTF.toString body
 
 parseKeyValue :: Get [(String, String)]
 parseKeyValue =  do
-    pairsCount <- getWord8
+    pairsCount <- getWord32be
     mapM parsePair [1..pairsCount]
     where
         parsePair :: a -> Get (String, String)
         parsePair _ = do
-            keyCount <- getWord8
+            keyCount <- getWord32be
             key <- getByteString $ word2int keyCount
-            valueCount <- getWord8
+            valueCount <- getWord32be
             value <- getByteString $ word2int valueCount
-            return (C8.unpack key, C8.unpack value)
+            return (UTF.toString key, UTF.toString value)
 
 formPair :: [String] -> Maybe (String, String)
 formPair (x1:x2:[]) = Just (x1, x2)

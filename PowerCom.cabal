@@ -17,6 +17,7 @@ Test-Suite PowerCom-Test
                    , gtk
                    , serialport
                    , bytestring
+                   , utf8-string
                    , binary
                    , binary-strict
                    , polynomial
@@ -37,6 +38,7 @@ Executable PowerCom
                           , gtk
                           , serialport
                           , bytestring
+                          , utf8-string
                           , binary
                           , binary-strict
                           , polynomial
