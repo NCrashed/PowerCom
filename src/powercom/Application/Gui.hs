@@ -89,6 +89,6 @@ initGui gladeFile initArgs callbacks = do
 runGui :: Window -> IO ()
 runGui mainWindow = do 
     -- Yielding GTK thread
-    timeoutAddFull (yield >> return True) priorityDefaultIdle 50
+    timeoutAddFull (yield >> return True) priorityDefaultIdle 1
     widgetShowAll mainWindow
     mainGUI
