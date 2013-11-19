@@ -30,6 +30,30 @@ import Control.Concurrent
 import Data.Functor
 import Data.IORef
 
+createAboutDialog :: IO ()
+createAboutDialog = do
+    dialog <- aboutDialogNew 
+    set dialog 
+        [ aboutDialogName      := "About application"
+        , aboutDialogVersion   := "1.1"
+        , aboutDialogCopyright := "Copyright 2013 Гуща Антон, Нардид Анатолий, Оганян Левон"
+        , aboutDialogComments  := "Application for messaging within serial port."
+        , aboutDialogLicense   := Just license]
+    dialog `on` response $ \id -> widgetHideAll dialog 
+    widgetShowAll dialog
+
+license = "PowerCom is free software: you can redistribute it and/or modify\n\
+\it under the terms of the GNU General Public License as published by\n\
+\the Free Software Foundation, either version 3 of the License, or\n\
+\(at your option) any later version.\n\
+\\n\
+\PowerCom is distributed in the hope that it will be useful,\n\
+\but WITHOUT ANY WARRANTY; without even the implied warranty of\n\
+\MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\
+\GNU General Public License for more details.\n\
+\\n\
+\You should have received a copy of the GNU General Public License\n\
+\along with PowerCom.  If not, see <http://www.gnu.org/licenses/>."
 
 initGui :: FilePath -> Maybe (String, String) -> GuiCallbacks -> IO (Window, ChannelOptions, GuiApi)
 initGui gladeFile initArgs callbacks = do 
@@ -44,6 +68,10 @@ initGui gladeFile initArgs callbacks = do
     -- Exit item
     exitItem <- builderGetObject builder castToMenuItem "ExitItem"
     exitItem `on` menuItemActivate $ mainQuit
+
+    -- Show about dialog
+    aboutItem <- builderGetObject builder castToMenuItem "AboutItem"
+    aboutItem `on` menuItemActivate $ createAboutDialog
 
     -- OptionDialog 
     (optionsRef, setupOptions') <- setupOptionDialog builder callbacks initArgs
