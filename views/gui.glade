@@ -134,7 +134,7 @@
               <object class="GtkToolButton" id="ConnectButton">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">_Соединить</property>
+                <property name="tooltip_text" translatable="yes">Connect</property>
                 <property name="use_underline">True</property>
                 <property name="icon_name">comotron-connect</property>
               </object>
@@ -147,7 +147,7 @@
               <object class="GtkToolButton" id="DisconnectButton">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">_Отключиться</property>
+                <property name="tooltip_text" translatable="yes">Disconnect</property>
                 <property name="use_underline">True</property>
                 <property name="icon_name">comotron-disconnect</property>
               </object>
@@ -160,7 +160,7 @@
               <object class="GtkToolButton" id="OptionButton">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">_Настройки</property>
+                <property name="tooltip_text" translatable="yes">Setup options</property>
                 <property name="use_underline">True</property>
                 <property name="stock_id">gtk-edit</property>
               </object>
