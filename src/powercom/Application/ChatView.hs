@@ -19,6 +19,7 @@ module Application.ChatView (
     , putInfoMessage
     , putErrorMessage
     , textViewGetAllText
+    , textViewSetText
     ) where
 
 import Graphics.UI.Gtk
@@ -74,6 +75,18 @@ textViewGetAllText textView = do
     endIter <- textBufferGetEndIter buffer 
     textBufferGetText buffer beginIter endIter True
 
+bufferDeleteAllText :: TextBuffer -> IO ()
+bufferDeleteAllText buffer = do 
+    beginIter <- textBufferGetStartIter buffer 
+    endIter <- textBufferGetEndIter buffer 
+    textBufferDelete buffer beginIter endIter 
+
+textViewSetText :: TextView -> String -> IO ()
+textViewSetText textView text = do 
+    buffer <- textViewGetBuffer textView 
+    bufferDeleteAllText buffer 
+    bufferAddStringWithTag buffer text "HistoryColor"
+
 initChatTextView :: Builder -> IO TextView
 initChatTextView builder = do 
     textView <- builderGetObject builder castToTextView "MessageArea"
@@ -107,5 +120,12 @@ initChatTextView builder = do
         , textTagForeground := "Cadet Blue"
         ]
     textTagTableAdd tagTable infoColorTag
+
+    historyColorTag <- textTagNew $ Just "HistoryColor"
+    historyColorTag `set` 
+        [ textTagBackground := "White"
+        , textTagForeground := "Chocolate"
+        ]
+    textTagTableAdd tagTable historyColorTag
 
     return textView

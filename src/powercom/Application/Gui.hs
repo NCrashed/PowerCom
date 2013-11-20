@@ -55,6 +55,52 @@ license = "PowerCom is free software: you can redistribute it and/or modify\n\
 \You should have received a copy of the GNU General Public License\n\
 \along with PowerCom.  If not, see <http://www.gnu.org/licenses/>."
 
+saveAction :: IORef (Maybe String) -> GuiApi -> IO ()
+saveAction lastSaveRef api = do 
+    lastSave <- readIORef lastSaveRef 
+    case lastSave of 
+        Nothing -> saveAsAction lastSaveRef api   
+        Just fileName -> saveChatToFile fileName api 
+
+saveAsAction :: IORef (Maybe String) -> GuiApi -> IO ()
+saveAsAction lastSaveRef api = do 
+    dialog <- newSaveDialog
+    withFileChooserDo dialog $ \s -> do 
+        writeIORef lastSaveRef $ Just s 
+        saveChatToFile s api
+    widgetDestroy dialog 
+
+openAction :: IORef (Maybe String) -> TextView -> IO ()
+openAction lastSaveRef chatView = do 
+    dialog <- newOpenDialog 
+    withFileChooserDo dialog $ \s -> do
+        writeIORef lastSaveRef $ Just s 
+        loadChatFromFile chatView s
+    widgetDestroy dialog 
+
+withFileChooserDo :: FileChooserDialog -> (String -> IO ()) -> IO () 
+withFileChooserDo dialog action = do 
+    response <- dialogRun dialog
+    case response of 
+        ResponseOk -> do 
+            newFileNameOpt <- fileChooserGetFilename dialog
+            case newFileNameOpt of 
+                Nothing -> return ()
+                Just fileName -> action fileName
+        _ -> return ()
+
+newSaveDialog :: IO FileChooserDialog
+newSaveDialog = fileChooserDialogNew Nothing Nothing FileChooserActionSave [("Save", ResponseOk), ("Cancel", ResponseCancel)]
+
+newOpenDialog :: IO FileChooserDialog 
+newOpenDialog = fileChooserDialogNew Nothing Nothing FileChooserActionOpen [("Open", ResponseOk), ("Cancel", ResponseCancel)]
+
+saveChatToFile :: FilePath -> GuiApi -> IO ()
+saveChatToFile filename api = writeFile filename =<< getChatText api 
+
+loadChatFromFile :: TextView -> FilePath -> IO ()
+loadChatFromFile textView fileName = textViewSetText textView =<< readFile fileName
+
 initGui :: FilePath -> Maybe (String, String) -> GuiCallbacks -> IO (Window, ChannelOptions, GuiApi)
 initGui gladeFile initArgs callbacks = do 
     initGUI
@@ -103,16 +149,30 @@ initGui gladeFile initArgs callbacks = do
     -- User list
     (userList, addUser', removeUser') <- initUserList builder (userName options)
 
-    return (mainWindow, options, GuiApi
-        {
-          printMessage = putUserMessage     chatTextView
-        , printInfo    = putInfoMessage     chatTextView
-        , printError   = putErrorMessage    chatTextView
-        , setupOptions = setupOptions'
-        , getChatText  = textViewGetAllText chatTextView
-        , addUser      = addUser'
-        , removeUser   = removeUser'
-        })
+    let api = GuiApi {
+              printMessage = putUserMessage     chatTextView
+            , printInfo    = putInfoMessage     chatTextView
+            , printError   = putErrorMessage    chatTextView
+            , setupOptions = setupOptions'
+            , getChatText  = textViewGetAllText chatTextView
+            , addUser      = addUser'
+            , removeUser   = removeUser'
+            }
+
+    -- save dialog
+    fileNameRef <- newIORef (Nothing :: Maybe String)
+    saveItem <- builderGetObject builder castToMenuItem "SaveItem"
+    saveItem `on` menuItemActivate $ saveAction fileNameRef api 
+
+    -- save as dialog
+    saveAsItem <- builderGetObject builder castToMenuItem "SaveAsItem"
+    saveAsItem `on` menuItemActivate $ saveAsAction fileNameRef api 
+
+    -- open dialog
+    openItem <- builderGetObject builder castToMenuItem "OpenItem"
+    openItem `on` menuItemActivate $ openAction fileNameRef chatTextView
+
+    return (mainWindow, options, api)
 
 runGui :: Window -> IO ()
 runGui mainWindow = do 
