@@ -24,6 +24,8 @@ import Application.Types
 import Channel.Options
 import System.Hardware.Serialport hiding (send)
 
+import Control.Monad.IO.Class (liftIO)
+
 import Data.Word 
 import Data.Functor
 import Data.Data
@@ -163,6 +165,14 @@ setupOptionDialog builder callbacks initArgs = do
     -- OptionDialog tool button
     optionButton <- builderGetObject builder castToToolButton "OptionButton"
     onToolButtonClicked optionButton $ widgetShowAll optionDialog
+
+    optionDialog `on` keyPressEvent $ tryEvent $ do 
+        "Return" <- eventKeyName
+        liftIO $ dialogResponse optionDialog $ ResponseUser 1 
+
+    optionDialog `on` keyPressEvent $ tryEvent $ do 
+        "Escape" <- eventKeyName 
+        liftIO $ dialogResponse optionDialog $ ResponseUser 2 
 
     optionDialog `on` response $ \respId -> do
           case respId of 

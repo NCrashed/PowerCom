@@ -26,6 +26,7 @@ import Application.UserList
 import Application.Types
 import Channel.Options
 
+import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent
 import Data.Functor
 import Data.IORef
@@ -128,15 +129,21 @@ initGui gladeFile initArgs callbacks = do
 
     -- Send buffer
     sendEntry <- builderGetObject builder castToEntry "SendEntry"
-    
+
+    let sendBtnAction = do 
+            msg <- entryGetText sendEntry
+            username <- userName <$> readIORef optionsRef
+            putUserMessage chatTextView username msg
+            sendMessageCallback callbacks msg 
+            entrySetText sendEntry ""
+
+    sendEntry `on` keyPressEvent $ tryEvent $ do 
+        "Return" <- eventKeyName
+        liftIO sendBtnAction
+
     -- Send Button
     sendButton <- builderGetObject builder castToButton "SendButton"
-    sendButton `on` buttonActivated $ do
-        msg <- entryGetText sendEntry
-        username <- userName <$> readIORef optionsRef
-        putUserMessage chatTextView username msg
-        sendMessageCallback callbacks msg 
-        entrySetText sendEntry ""
+    sendButton `on` buttonActivated $ sendBtnAction
         
     -- Connect button
     connectButton <- builderGetObject builder castToToolButton "ConnectButton"
@@ -173,7 +180,7 @@ initGui gladeFile initArgs callbacks = do
     openItem `on` menuItemActivate $ openAction fileNameRef chatTextView
 
     return (mainWindow, options, api)
-
+            
 runGui :: Window -> IO ()
 runGui mainWindow = do 
     -- Yielding GTK thread

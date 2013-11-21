@@ -22,6 +22,7 @@ Test-Suite PowerCom-Test
                    , binary-strict
                    , polynomial
                    , containers
+                   , transformers
                    , QuickCheck >= 2.0
                    , distributed-process
                    , distributed-process-simplelocalnet
@@ -43,6 +44,7 @@ Executable PowerCom
                           , binary-strict
                           , polynomial
                           , containers
+                          , transformers
                           , QuickCheck >= 2.0
                           , distributed-process
                           , distributed-process-simplelocalnet
