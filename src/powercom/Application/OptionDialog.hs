@@ -21,7 +21,6 @@ module Application.OptionDialog (
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Builder
 import Application.Types
-import Channel.Options
 import System.Hardware.Serialport hiding (send)
 
 import Control.Monad.IO.Class (liftIO)
@@ -32,6 +31,9 @@ import Data.Data
 import Data.List
 import Data.IORef
 import Data.Maybe 
+
+import Channel.Options
+import Physical.Detector 
 
 -- |Fills combo with list of showable values and return function to
 -- matching that values with combo elements 
@@ -60,14 +62,14 @@ defaultOptionsWithArgs args = case args of
 
 setupGuiOptions :: Builder -> OptionMappings -> ChannelOptions -> IO ChannelOptions
 setupGuiOptions builder mappings options = do
-    portNameEntry  <- getEntry "PortNameEntry"
-    userNameEntry  <- getEntry "UserNameEntry"
-    speedCombo     <- getComboBox "SpeedCombo"
-    stopBitCombo   <- getComboBox "StopBitCombo"
-    parityBitCombo <- getComboBox "ParityBitCombo"
-    wordBitCombo   <- getComboBox "WordBitCombo"
+    --portNameCombo    <- getComboBox "PortNameCombo"
+    userNameEntry    <- getEntry "UserNameEntry"
+    speedCombo       <- getComboBox "SpeedCombo"
+    stopBitCombo     <- getComboBox "StopBitCombo"
+    parityBitCombo   <- getComboBox "ParityBitCombo"
+    wordBitCombo     <- getComboBox "WordBitCombo"
 
-    entrySetText portNameEntry $ portName options
+    --entrySetText portNameEntry $ portName options
     entrySetText userNameEntry $ userName options
     comboBoxSetActive speedCombo     $ fromMaybe 0 $ (speedMapping mappings)    $ portSpeed      options
     comboBoxSetActive stopBitCombo   $ fromMaybe 0 $ (stopBitMapping mappings)  $ portStopBits   options
@@ -81,14 +83,14 @@ setupGuiOptions builder mappings options = do
 
 collectOptions :: Builder -> IO ChannelOptions
 collectOptions builder = do 
-    portNameEntry  <- getEntry "PortNameEntry"
+    portNameCombo  <- getComboBox "PortNameCombo"
     userNameEntry  <- getEntry "UserNameEntry"
     speedCombo     <- getComboBox "SpeedCombo"
     stopBitCombo   <- getComboBox "StopBitCombo"
     parityBitCombo <- getComboBox "ParityBitCombo"
     wordBitCombo   <- getComboBox "WordBitCombo"
 
-    portNameVal    <- entryGetText portNameEntry
+    portNameVal    <- getFromCombo portNameCombo
     userNameVal    <- entryGetText userNameEntry
     portSpeedVal   <- string2PortSpeed <$> getFromCombo speedCombo
     stopBitVal     <- string2StopBit   <$> getFromCombo stopBitCombo
@@ -124,6 +126,9 @@ setupOptionDialog builder callbacks initArgs = do
     optionDialog `set` [windowDeletable := False]
 
     -- Combos
+    portNameCombo <- builderGetObject builder castToComboBox "PortNameCombo"
+    portNameMatch <- createEnumCombo portNameCombo id =<< getSerialPorts
+
     speedCombo <- builderGetObject builder castToComboBox "SpeedCombo"
     speedMatch <- createEnumCombo speedCombo portSpeed2String
         [CS110

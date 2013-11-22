@@ -19,7 +19,6 @@ module Physical.Layer (
 
 import Control.Distributed.Process
 import qualified Data.ByteString                as BS
-import qualified Data.ByteString.Lazy           as BL
 import qualified System.Hardware.Serialport     as Serial
 import Data.Binary.Strict.Get 
 import Data.Binary.Put 
@@ -29,72 +28,10 @@ import Data.Typeable
 import Data.Binary (Binary)
 import Control.Exception (SomeException)
 import Control.Monad (forever)
-import Control.Concurrent (yield)
 
 import Physical.Options
+import Physical.Port
 import Utility (while, exitMsg)
-
-type PortState = IORef (Serial.SerialPort, Bool)
-
-toStrict :: BL.ByteString -> BS.ByteString
-toStrict = BS.concat . BL.toChunks
-
-initPort :: ChannelOptions -> Process PortState
-initPort channel = do
-    port <- liftIO $ Serial.openSerial (portName channel) (channel2physicalOptions channel)
-    liftIO $ newIORef (port, True)
-
-closePort :: PortState -> Process ()
-closePort portState = do
-    (port, opened) <- liftIO $ readIORef portState
-    if opened then liftIO $ do 
-        Serial.closeSerial port
-        writeIORef portState (port, False)
-    else return ()
-
-reopenPort :: PortState -> ChannelOptions -> Process (Maybe String)
-reopenPort portState options = do
-    (port, opened) <- liftIO $ readIORef portState 
-    if(opened == True) then closePort portState else return ()
-
-    res <- try (liftIO $ liftIO $ 
-        Serial.openSerial (portName options) (channel2physicalOptions options)) 
-            :: Process (Either SomeException Serial.SerialPort)
-    case res of 
-        Left ex -> return $ Just $ show ex 
-        Right newPort -> liftIO $ writeIORef portState (newPort, True) >> return Nothing
-    
-
-receiveFrame :: PortState -> Process (Either String BS.ByteString)
-receiveFrame portState = do 
-    bsLengthRes <- receiveNonEmpty portState 4
-    case bsLengthRes of 
-        Left ex        -> return $ Left ex
-        Right bsLength -> 
-            case fst $ runGet (getWord32be) bsLength of
-                Left _            -> return $ Left ("Parsing failed! " ++ show bsLength)
-                Right frameLength -> receiveNonEmpty portState $ fromIntegral frameLength
-    where
-        receiveNonEmpty :: PortState -> Int -> Process (Either String BS.ByteString)
-        receiveNonEmpty portState msgLength = do
-            (port, opened) <- liftIO $ readIORef portState
-            if opened == False then return $ Left "Port closed!"
-            else do
-                liftIO $ yield
-                res <- try (liftIO $ Serial.recv port msgLength) :: Process (Either SomeException BS.ByteString)
-                liftIO $ yield
-                case res of 
-                    Left ex         -> return $ Left (show ex)
-                    Right msg       -> if BS.length msg == 0 
-                        then receiveNonEmpty portState msgLength 
-                        else if BS.length msg < msgLength 
-                            then do 
-                                resRec <- receiveNonEmpty portState (msgLength - (BS.length msg))
-                                case resRec of
-                                    Left ex -> return $ Left ex 
-                                    Right rec -> return $ Right $ BS.concat [msg,rec]   
-                            else return $ Right msg 
-
 
 receiveFrameCycle :: ProcessId -> PortState -> Process () 
 receiveFrameCycle channelId portState = do
@@ -105,32 +42,6 @@ receiveFrameCycle channelId portState = do
         case frameResult of 
             Right bs -> send channelId (thisId, "frame", bs)
             Left err -> send channelId (thisId, "error", "Error while receiving frame: " ++ err ++ "!")
-
-serialSendSafe :: PortState -> BS.ByteString -> Process (Maybe Int)
-serialSendSafe portState msg = do 
-    (port, _) <- liftIO $ readIORef portState
-    res <- try (liftIO $ Serial.send port msg) :: Process (Either SomeException Int)
-    case res of 
-        Left err -> return Nothing
-        Right l -> return $ Just l 
-
-sendFrame :: PortState -> BS.ByteString -> Process (Maybe String)
-sendFrame portState msg = do
-    (_, opened) <- liftIO $ readIORef portState
-    if opened == False then return Nothing
-    else do
-        sendLengthRes <- serialSendSafe portState bsLength
-        case sendLengthRes of 
-            Just 4 -> do 
-                sendedMsgRes <- serialSendSafe portState msg 
-                case sendedMsgRes of
-                    Just frameLength -> return Nothing
-                    _                -> return $ Just "Failed to send frame body!"
-            _ -> return $ Just "Failed to send frame length!"
-        where
-            bsLength :: BS.ByteString
-            bsLength = toStrict $ runPut $ putWord32be $ fromIntegral frameLength
-            frameLength = BS.length msg
 
 sendFrameHandler :: PortState -> (ProcessId, String, BS.ByteString) -> Process Bool
 sendFrameHandler portState (senderId, _, msg) = do 

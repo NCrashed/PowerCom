@@ -20,6 +20,7 @@ Test-Suite PowerCom-Test
                    , utf8-string
                    , binary
                    , binary-strict
+                   , directory
                    , polynomial
                    , containers
                    , transformers
@@ -42,6 +43,7 @@ Executable PowerCom
                           , utf8-string
                           , binary
                           , binary-strict
+                          , directory
                           , polynomial
                           , containers
                           , transformers
