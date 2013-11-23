@@ -15,3 +15,21 @@ And finally in PowerCom root directory:
 ```
 cabal install
 ```
+
+Features
+========
+
+1. Serial port detection (linux only now);
+2. Colorfull chat;
+3. Logical connection with remote connection;
+4. Uplink checker;
+5. Option changing on the fly on both sides;
+6. Sending very large texts;
+7. Frame protection with cyclic code and send retries;
+8. History saving/loading;
+9. Username changing on the fly;
+
+Screenshots
+===========
+
+![Interface](PowerComScreen1.png)
