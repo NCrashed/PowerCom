@@ -45,5 +45,5 @@ main = do
     
   where 
     convertArgs args = case length args of
-        2 -> Just (args !! 0, args !! 1)
+        2 -> Just (head args, args !! 1)
         _ -> Nothing

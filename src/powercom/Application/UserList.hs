@@ -20,6 +20,7 @@ module Application.UserList (
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Builder
 import Data.List (elemIndex)
+import Control.Monad 
 
 defaultUserIcon :: String 
 defaultUserIcon =  "comotron-user"
@@ -29,7 +30,7 @@ addUserToList store name = do
     list <- listStoreToList store 
     case elemIndex name $ map snd list of
         Just i  -> return ()
-        Nothing -> listStoreAppend store (defaultUserIcon, name) >> return ()
+        Nothing -> void $ listStoreAppend store (defaultUserIcon, name)
 
 removeUserFromList :: ListStore (String, String) -> String -> IO ()
 removeUserFromList store name = do 
@@ -44,8 +45,8 @@ initUserList builder username = do
     treeView <- builderGetObject builder castToTreeView "UserListView"
     store <- listStoreNew [(defaultUserIcon, username)]
     
-    treeModelSetColumn store (makeColumnIdString 0) $ \(icon, _) -> icon 
-    treeModelSetColumn store (makeColumnIdString 1) $ \(_, name) -> name 
+    treeModelSetColumn store (makeColumnIdString 0) fst 
+    treeModelSetColumn store (makeColumnIdString 1) snd 
     treeViewSetModel treeView store 
 
     return (treeView, addUserToList store, removeUserFromList store)

@@ -92,6 +92,4 @@ physicalLayerCycle options channelId = do
             physicalLayerCycle newOptions channelId
 
 initPhysicalLayer :: ChannelOptions -> ProcessId -> Process ProcessId
-initPhysicalLayer options channelId = do
-    id <- spawnLocal $ physicalLayerCycle options channelId
-    return id
+initPhysicalLayer options channelId = spawnLocal $ physicalLayerCycle options channelId

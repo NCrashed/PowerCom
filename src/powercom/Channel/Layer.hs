@@ -41,7 +41,7 @@ sendMessageHandler physLayerId conn optionsRef (senderId, _, msg) = do
     return True
     where
         frameBuffers :: String -> [Frame]
-        frameBuffers uname = startFrame : (dataFrames msg)
+        frameBuffers uname = startFrame : dataFrames msg
             where  
                 lengthInFrame :: Int 
                 lengthInFrame = 200
@@ -50,11 +50,11 @@ sendMessageHandler physLayerId conn optionsRef (senderId, _, msg) = do
                 startFrame = InformationFrame uname $ fromIntegral dataFramesCount
 
                 dataFramesCount :: Int 
-                dataFramesCount = ((length msg) `quot` lengthInFrame) + 1
+                dataFramesCount = (length msg `quot` lengthInFrame) + 1
 
                 dataFrames :: String -> [Frame]
                 dataFrames [] = []
-                dataFrames s =  (DataPartFrame $ take lengthInFrame s) : (dataFrames $ drop lengthInFrame s)
+                dataFrames s =  (DataPartFrame $ take lengthInFrame s) : dataFrames (drop lengthInFrame s)
 
 -- TODO: Move to sending Frame instead of bytestring
 transitFrameHandler :: ProcessId -> Connection -> (ProcessId, String, BS.ByteString) -> Process Bool 
@@ -72,9 +72,9 @@ changeOptionsHandler physLayerId conn optionsRef (senderId, _, options, oldOptio
     send physLayerId (thisId, "reopen", options)
     ifConnected conn $ do 
         informSender senderId "Changing options..."
-        case userName oldOptions == userName options of 
-            False  -> sendFrameWithDisconnect conn senderId physLayerId frameWithRemoteNames
-            True   -> sendFrameWithDisconnect conn senderId physLayerId frame
+        sendFrameWithDisconnect conn senderId physLayerId $
+            if userName oldOptions == userName options then frame 
+            else frameWithRemoteNames
     return True
     where
         frame :: Frame
@@ -99,28 +99,26 @@ transitInfo :: ProcessId -> (ProcessId, String, String) -> Process Bool
 transitInfo transitId (_, _, msg) = informSender transitId msg >> return True 
 
 initChannelLayer :: ProcessId -> ChannelOptions -> Process ProcessId
-initChannelLayer appLayer options = do
-    id <- spawnLocal $ do
-        thisId <- getSelfPid
-        optionsRef    <- initInnerOptions options
-        connection    <- initConnection
-        messageBuffer <- initMessageBuffer
-        physLayerId   <- initPhysicalLayer options thisId
-        spawnConnectionChecker thisId appLayer connection
-        while $ receiveWait [
-            -- From connection checker
-              matchIf (\(_, com, _)    -> com == "transit-frame") $ transitFrameHandler   physLayerId connection
-            -- From application layer
-            , matchIf (\(_, com)       -> com == "exit")       $ exitMsg
-            , matchIf (\(_, com, _)    -> com == "send")       $ sendMessageHandler   physLayerId connection optionsRef
-            , matchIf (\(_, com)       -> com == "connect")    $ connectHandler       physLayerId connection optionsRef
-            , matchIf (\(_, com)       -> com == "disconnect") $ disconnectHandler    physLayerId connection optionsRef
-            , matchIf (\(_, com, _, _) -> com == "options")    $ changeOptionsHandler physLayerId connection optionsRef
-            -- From physical layer
-            , matchIf (\(_, com, _)    -> com == "error")      $ transitError        appLayer
-            , matchIf (\(_, com, _)    -> com == "info")       $ transitInfo         appLayer
-            , matchIf (\(_, com, _)    -> com == "frame" || com == "frame-acked")      
-                $ receiveFrameHandler physLayerId appLayer messageBuffer connection optionsRef]
+initChannelLayer appLayer options = spawnLocal $ do
+    thisId <- getSelfPid
+    optionsRef    <- initInnerOptions options
+    connection    <- initConnection
+    messageBuffer <- initMessageBuffer
+    physLayerId   <- initPhysicalLayer options thisId
+    spawnConnectionChecker thisId appLayer connection
+    while $ receiveWait [
+        -- From connection checker
+          matchIf (\(_, com, _)    -> com == "transit-frame") $ transitFrameHandler   physLayerId connection
+        -- From application layer
+        , matchIf (\(_, com)       -> com == "exit")         exitMsg
+        , matchIf (\(_, com, _)    -> com == "send")       $ sendMessageHandler   physLayerId connection optionsRef
+        , matchIf (\(_, com)       -> com == "connect")    $ connectHandler       physLayerId connection optionsRef
+        , matchIf (\(_, com)       -> com == "disconnect") $ disconnectHandler    physLayerId connection optionsRef
+        , matchIf (\(_, com, _, _) -> com == "options")    $ changeOptionsHandler physLayerId connection optionsRef
+        -- From physical layer
+        , matchIf (\(_, com, _)    -> com == "error")      $ transitError        appLayer
+        , matchIf (\(_, com, _)    -> com == "info")       $ transitInfo         appLayer
+        , matchIf (\(_, com, _)    -> com == "frame" || com == "frame-acked")      
+            $ receiveFrameHandler physLayerId appLayer messageBuffer connection optionsRef]
 
-        send physLayerId (thisId, "exit")
-    return id
+    send physLayerId (thisId, "exit")

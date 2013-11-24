@@ -61,7 +61,7 @@ instance Num Bit where
 
     abs ba = ba 
     signum ba = ba
-    fromInteger int = if int > 0 then Bit True else Bit False
+    fromInteger int = Bit $ int > 0
 
 instance Fractional Bit where
     (/) ba _ = ba
@@ -69,10 +69,10 @@ instance Fractional Bit where
 
 word8ToPoly :: Word8 -> Poly Bit
 word8ToPoly wd = poly LE $ map 
-    (\i -> if testBit wd i then Bit True else Bit False) [0 .. (bitSize wd)-1]
+    (Bit . testBit wd) [0 .. bitSize wd - 1]
 
 polyToWord8 :: Poly Bit -> Word8 
-polyToWord8 = foldrWithIndex coeff2Bit (fromIntegral 0) . fromList . polyCoeffs LE
+polyToWord8 = foldrWithIndex coeff2Bit 0 . fromList . polyCoeffs LE
     where
         coeff2Bit :: Int -> Bit -> Word8 -> Word8 
         coeff2Bit i (Bit b) acc = if b then acc `setBit` i else acc
@@ -86,16 +86,16 @@ codeWord8 wd = (codeWord4 highWord, codeWord4 lowWord)
           lowWord  = wd .&. 0x0F
 
 codeWord4 :: Word4 -> Word7 -- n = 7 k = 4 
-codeWord4 wd = (polyToWord8 finalPoly)
+codeWord4 wd = polyToWord8 finalPoly
     where
         polyGen     = poly BE [1,0,1,1]
         wordPoly    = word8ToPoly wd
-        shiftedPoly = wordPoly `multPoly` (poly BE [1,0,0,0]) -- (n - k) = 3
+        shiftedPoly = wordPoly `multPoly` poly BE [1, 0, 0, 0] -- (n - k) = 3
         reminder    = shiftedPoly `remPoly` polyGen
         finalPoly   = shiftedPoly `addPoly` reminder
 
 decodeCyclic :: BS.ByteString -> Maybe BS.ByteString
-decodeCyclic = mPack . sequence . map decodeWord8 . makePairs . BS.unpack
+decodeCyclic = mPack . mapM decodeWord8 . makePairs . BS.unpack
     where
         mPack = liftM BS.pack
 
@@ -105,9 +105,9 @@ makePairs (x:[]) = []
 makePairs (x1:x2:xs) = (x1, x2) : makePairs xs
 
 decodeWord8 :: (Word7, Word7) -> Maybe Word8 
-decodeWord8 (a, b) = (mShiftL4 $ decodeWord4 a) `mOr` (decodeWord4 b)
+decodeWord8 (a, b) = mShiftL4 (decodeWord4 a) `mOr` decodeWord4 b
     where
-        mShiftL4 = liftM $ (flip shiftL) 4
+        mShiftL4 = liftM $ flip shiftL 4
         mOr = liftM2 (.|.)
 
 decodeWord4 :: Word7 -> Maybe Word4 
@@ -125,13 +125,13 @@ prop_codeDecodeEq wd = case decodeWord8 $ codeWord8 wd of
     Just val -> wd == val
 
 prop_polyConverting :: Word8 -> Bool 
-prop_polyConverting wd = wd == (polyToWord8 $ word8ToPoly wd)
+prop_polyConverting wd = wd == polyToWord8 (word8ToPoly wd)
 
 prop_Word8BitCount :: Word8 -> Bool
 prop_Word8BitCount wd = bitSize wd == 8
 
 prop_quotRemPoly :: Word8 -> Word8 -> Bool
-prop_quotRemPoly a b = if b == 0 then True else newa == pa
+prop_quotRemPoly a b = (b == 0) || (newa == pa)
     where newa   = addPoly (multPoly q pb) r
           (q, r) = quotRemPoly pa pb
           pa = word8ToPoly a 
@@ -164,7 +164,7 @@ prop_falseWord4Coding wd (BitError i) = case decodeWord4 $ complementBit (codeWo
 
 prop_falseWord8Coding :: Word8 -> BitError -> BitError -> Bool
 prop_falseWord8Coding wd (BitError i1) (BitError i2) = 
-    case decodeWord8 $ (cwd1 `complementBit` i1, cwd2 `complementBit` i2) of
+    case decodeWord8 (cwd1 `complementBit` i1, cwd2 `complementBit` i2) of
         Nothing -> True
         Just _ -> False
     where 

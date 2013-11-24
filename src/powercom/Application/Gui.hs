@@ -30,6 +30,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent
 import Data.Functor
 import Data.IORef
+import Data.Foldable 
 
 createAboutDialog :: IO ()
 createAboutDialog = do
@@ -85,9 +86,7 @@ withFileChooserDo dialog action = do
     case response of 
         ResponseOk -> do 
             newFileNameOpt <- fileChooserGetFilename dialog
-            case newFileNameOpt of 
-                Nothing -> return ()
-                Just fileName -> action fileName
+            forM_ newFileNameOpt action
         _ -> return ()
 
 newSaveDialog :: IO FileChooserDialog

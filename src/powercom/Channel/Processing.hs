@@ -26,6 +26,7 @@ import Channel.Sending
 
 import Control.Distributed.Process 
 import Control.Applicative
+import Control.Monad 
 
 import qualified Data.ByteString as BS
 import Data.Functor
@@ -38,20 +39,17 @@ receiveFrameHandler physLayerId transitId messageBuffer conn optionsRef (_, com,
     thisId <- getSelfPid
     options <- getOptions optionsRef
     case decodeFrame byteFrame of 
-        Just frame -> do
+        Just frame ->
             case frame of 
                 AckFrame -> return ()
                 RetFrame -> return ()
                 _ -> do 
-                    if com /= "frame-acked" -- prevent double sending for not fully processed frames
-                        then sendFrame physLayerId AckFrame 
-                        else return ()
+                    -- prevent double sending for not fully processed frames
+                    when (com /= "frame-acked") $ sendFrame physLayerId AckFrame 
                     processFrame frame options
         _ -> do 
-            informSenderError transitId $ "Failed to recieve frame!"
-            if com /= "frame-acked"
-                then sendFrame physLayerId RetFrame
-                else return ()
+            informSenderError transitId "Failed to recieve frame!"
+            when (com /= "frame-acked") $ sendFrame physLayerId RetFrame
     return True
     where 
         getRemoteNames :: [(String, String)] -> Maybe (String, String)
@@ -68,10 +66,9 @@ receiveFrameHandler physLayerId transitId messageBuffer conn optionsRef (_, com,
         processFrame (DataPartFrame s) _ = do 
             addMessagePart messageBuffer s 
             filled <- isMessageReady messageBuffer
-            if filled then do  
+            when filled $ do  
                 (name, msg) <- collectMessage messageBuffer
-                sendMessage transitId name msg 
-            else return ()
+                sendMessage transitId name msg
 
         processFrame (OptionFrame props) options = do 
             case getRemoteNames props of 

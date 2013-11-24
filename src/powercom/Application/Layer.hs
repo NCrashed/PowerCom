@@ -79,32 +79,32 @@ callbacks events =
 
 printUserMessage :: GuiApi -> (ProcessId, String, String, String) -> Process Bool
 printUserMessage api (_, _, user, msg) = do 
-    liftIO $ (printMessage api) user msg 
+    liftIO $ printMessage api user msg 
     return True
 
 printInfoMessage :: GuiApi -> (ProcessId, String, String) -> Process Bool
 printInfoMessage api (_, _, msg) = do 
-    liftIO $ (printInfo api) msg 
+    liftIO $ printInfo api msg 
     return True
 
 printErrorMessage :: GuiApi -> (ProcessId, String, String) -> Process Bool
 printErrorMessage api (_, _, msg) = do 
-    liftIO $ (printError api) msg 
+    liftIO $ printError api msg 
     return True
 
 setupOptionsHandler :: GuiApi -> (ProcessId, String, ChannelOptions) -> Process Bool
 setupOptionsHandler api (_, _, options) = do 
-    liftIO $ (setupOptions api) options 
+    liftIO $ setupOptions api options 
     return True 
 
 userConnectHandler :: GuiApi -> (ProcessId, String, String) -> Process Bool
 userConnectHandler api (_, _, name) = do 
-    liftIO $ (addUser api) name
+    liftIO $ addUser api name
     return True 
 
 userDisconnectHandler :: GuiApi -> (ProcessId, String, String) -> Process Bool
 userDisconnectHandler api (_, _, name) = do 
-    liftIO $ (removeUser api) name
+    liftIO $ removeUser api name
     return True 
     
 initApplicationLayer :: FilePath -> Maybe (String, String) -> ProcessId -> Process ()
@@ -119,17 +119,17 @@ initApplicationLayer gladeFile args rootId = do
       
       spawnLocal $ do
           liftIO $ runGui mainWindow
-          mapM_ ((flip send) (thisId, "exit")) [thisId, channelId, rootId]
+          mapM_ (`send` (thisId, "exit")) [thisId, channelId, rootId]
       
       spawnLocal $ forever $ do 
         checkEvent (sendEvent events) (\s -> send channelId (thisId, "send", s)) ()
         checkEvent (connectEvent events) (\() -> send channelId (thisId, "connect")) ()
         checkEvent (disconnectEvent events) (\() -> send channelId (thisId, "disconnect")) ()
         checkEvent (optionChangedEvent events) (\(opt, oldopt) -> do
-          liftIO $ (removeUser api) $ userName oldopt
-          liftIO $ (addUser api) $ userName opt
+          liftIO $ removeUser api $ userName oldopt
+          liftIO $ addUser api $ userName opt
           send channelId (thisId, "options", opt, oldopt)) ()
-        liftIO $ yield
+        liftIO yield
 
       while $ receiveWait [
               matchIf (\(_, com)       -> com == "exit")         exitMsg

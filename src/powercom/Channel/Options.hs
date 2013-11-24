@@ -148,7 +148,7 @@ string2ParityBit s = case s of
     _           -> NoParity
 
 getOptionPairs :: ChannelOptions -> [String] -> [(String, String)]
-getOptionPairs options props = foldl getProperty [] props
+getOptionPairs options = foldl getProperty []
     where
         getProperty :: [(String, String)] -> String -> [(String, String)]
         getProperty acc prop = case prop of 

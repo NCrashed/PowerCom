@@ -68,19 +68,18 @@ main = do
     send channelId (rootId, "connect")
     liftIO $ threadDelay 1000000
 
-    if length args == 3 then do 
+    when (length args == 3) $ do 
       dt <- liftIO $ testData args    
-      send channelId $ (rootId, "send", dt)
-    else return ()
+      send channelId (rootId, "send", dt)
 
     while $ receiveWait [
               matchIf (\(_, com)       -> com == "exit")         exitMsg
-            , matchIf (\(_, com, _, _) -> com == "message")    $ printUserMessage       
-            , matchIf (\(_, com, _)    -> com == "info")       $ printInfoMessage       
-            , matchIf (\(_, com, _)    -> com == "error")      $ printErrorMessage      
-            , matchIf (\(_, com, _)    -> com == "options")    $ setupOptionsHandler    
-            , matchIf (\(_, com, _)    -> com == "connect")    $ userConnectHandler     
-            , matchIf (\(_, com, _)    -> com == "disconnect") $ userDisconnectHandler]
+            , matchIf (\(_, com, _, _) -> com == "message")      printUserMessage       
+            , matchIf (\(_, com, _)    -> com == "info")         printInfoMessage       
+            , matchIf (\(_, com, _)    -> com == "error")        printErrorMessage      
+            , matchIf (\(_, com, _)    -> com == "options")      setupOptionsHandler    
+            , matchIf (\(_, com, _)    -> com == "connect")      userConnectHandler     
+            , matchIf (\(_, com, _)    -> com == "disconnect")   userDisconnectHandler]
 
     
   where 
@@ -88,7 +87,7 @@ main = do
     testData args = readFile (args !! 2)
 
     convertArgs args = if length args >= 2 then
-        Just (args !! 0, args !! 1)
+        Just (head args, args !! 1)
         else Nothing
     startOptions args = case args of 
       Just (port, uname) -> defaultOptions {portName = port, userName = uname}

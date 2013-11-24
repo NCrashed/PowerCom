@@ -24,6 +24,8 @@ import Application.Types
 import System.Hardware.Serialport hiding (send)
 
 import Control.Monad.IO.Class (liftIO)
+import Control.Applicative 
+import Control.Monad
 
 import Data.Word 
 import Data.Functor
@@ -31,6 +33,7 @@ import Data.Data
 import Data.List
 import Data.IORef
 import Data.Maybe 
+
 
 import Channel.Options
 import Physical.Detector 
@@ -60,35 +63,37 @@ defaultOptionsWithArgs args = case args of
     Nothing -> defaultOptions 
     Just (portname, username) -> defaultOptions { portName = portname, userName = username}
 
-setupGuiOptions :: Builder -> OptionMappings -> ChannelOptions -> IO ChannelOptions
-setupGuiOptions builder mappings options = do
-    --portNameCombo    <- getComboBox "PortNameCombo"
-    userNameEntry    <- getEntry "UserNameEntry"
-    speedCombo       <- getComboBox "SpeedCombo"
-    stopBitCombo     <- getComboBox "StopBitCombo"
-    parityBitCombo   <- getComboBox "ParityBitCombo"
-    wordBitCombo     <- getComboBox "WordBitCombo"
-
-    --entrySetText portNameEntry $ portName options
-    entrySetText userNameEntry $ userName options
-    comboBoxSetActive speedCombo     $ fromMaybe 0 $ (speedMapping mappings)    $ portSpeed      options
-    comboBoxSetActive stopBitCombo   $ fromMaybe 0 $ (stopBitMapping mappings)  $ portStopBits   options
-    comboBoxSetActive parityBitCombo $ fromMaybe 0 $ (parityMapping mappings)   $ portParityBits options
-    comboBoxSetActive wordBitCombo   $ fromMaybe 0 $ (portWordMapping mappings) $ portWordBits   options
-
-    return options
+getOptionElements :: Builder -> IO (ComboBox, Entry, ComboBox, ComboBox, ComboBox, ComboBox)
+getOptionElements builder = (,,,,,) <$> 
+    getComboBox "PortNameCombo" <*>
+    getEntry "UserNameEntry" <*> 
+    getComboBox "SpeedCombo" <*>
+    getComboBox "StopBitCombo" <*>
+    getComboBox "ParityBitCombo" <*>
+    getComboBox "WordBitCombo"
     where
         getEntry     = builderGetObject builder castToEntry
         getComboBox  = builderGetObject builder castToComboBox
+                
+        
+setupGuiOptions :: Builder -> OptionMappings -> ChannelOptions -> IO ChannelOptions
+setupGuiOptions builder mappings options = do
+    (_,userNameEntry,speedCombo,stopBitCombo,parityBitCombo,wordBitCombo) <- getOptionElements builder
+
+    --entrySetText portNameEntry $ portName options
+    entrySetText userNameEntry $ userName options
+    comboBoxSetActive speedCombo     $ fromMaybe 0 $ speedMapping mappings $ portSpeed options
+    comboBoxSetActive stopBitCombo   $ fromMaybe 0 $ stopBitMapping mappings $ portStopBits options
+    comboBoxSetActive parityBitCombo $ fromMaybe 0 $ parityMapping mappings $ portParityBits options
+    comboBoxSetActive wordBitCombo   $ fromMaybe 0 $ portWordMapping mappings $ portWordBits options
+
+    return options
+
 
 collectOptions :: Builder -> IO ChannelOptions
 collectOptions builder = do 
-    portNameCombo  <- getComboBox "PortNameCombo"
-    userNameEntry  <- getEntry "UserNameEntry"
-    speedCombo     <- getComboBox "SpeedCombo"
-    stopBitCombo   <- getComboBox "StopBitCombo"
-    parityBitCombo <- getComboBox "ParityBitCombo"
-    wordBitCombo   <- getComboBox "WordBitCombo"
+    (portNameCombo,userNameEntry,speedCombo,stopBitCombo,parityBitCombo,wordBitCombo) 
+        <- getOptionElements builder
 
     portNameVal    <- getFromCombo portNameCombo
     userNameVal    <- entryGetText userNameEntry
@@ -113,12 +118,9 @@ collectOptions builder = do
             case maybeText of
                 Just str -> return str
                 Nothing  -> return ""
-
-        getEntry     = builderGetObject builder castToEntry
-        getComboBox  = builderGetObject builder castToComboBox
         getWordBit s = case s of 
             "" -> 7
-            _  -> (read s)::Word8
+            _  -> read s :: Word8
 
 setupOptionDialog :: Builder -> GuiCallbacks -> Maybe (String, String) -> IO (IORef ChannelOptions, ChannelOptions -> IO ())
 setupOptionDialog builder callbacks initArgs = do
@@ -191,4 +193,4 @@ setupOptionDialog builder callbacks initArgs = do
           widgetHideAll optionDialog
 
     -- OptionDialog
-    return (options, \o -> setupGuiOptions builder mappings o >> return ())
+    return (options, void . setupGuiOptions builder mappings)

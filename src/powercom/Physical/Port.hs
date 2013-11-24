@@ -33,6 +33,7 @@ import Data.IORef
 import Control.Exception (SomeException)
 import Control.Concurrent (yield)
 import Control.Distributed.Process
+import Control.Monad 
 
 import Physical.Options
 
@@ -49,15 +50,14 @@ initPort channel = do
 closePort :: PortState -> Process ()
 closePort portState = do
     (port, opened) <- liftIO $ readIORef portState
-    if opened then liftIO $ do 
+    when opened $ liftIO $ do 
         Serial.closeSerial port
         writeIORef portState (port, False)
-    else return ()
 
 reopenPort :: PortState -> ChannelOptions -> Process (Maybe String)
 reopenPort portState options = do
     (port, opened) <- liftIO $ readIORef portState 
-    if(opened == True) then closePort portState else return ()
+    when opened $ closePort portState
 
     res <- try (liftIO $ 
         Serial.openSerial (portName options) (channel2physicalOptions options)) 
@@ -73,29 +73,27 @@ receiveFrame portState = do
     case bsLengthRes of 
         Left ex        -> return $ Left ex
         Right bsLength -> 
-            case fst $ runGet (getWord32be) bsLength of
+            case fst $ runGet getWord32be bsLength of
                 Left _            -> return $ Left ("Parsing failed! " ++ show bsLength)
                 Right frameLength -> receiveNonEmpty portState $ fromIntegral frameLength
     where
         receiveNonEmpty :: PortState -> Int -> Process (Either String BS.ByteString)
         receiveNonEmpty portState msgLength = do
             (port, opened) <- liftIO $ readIORef portState
-            if opened == False then return $ Left "Port closed!"
+            if not opened then return $ Left "Port closed!"
             else do
-                liftIO $ yield
+                liftIO yield
                 res <- try (liftIO $ Serial.recv port msgLength) :: Process (Either SomeException BS.ByteString)
-                liftIO $ yield
+                liftIO yield
                 case res of 
                     Left ex         -> return $ Left (show ex)
-                    Right msg       -> if BS.length msg == 0 
-                        then receiveNonEmpty portState msgLength 
-                        else if BS.length msg < msgLength 
-                            then do 
-                                resRec <- receiveNonEmpty portState (msgLength - (BS.length msg))
+                    Right msg | BS.length msg == 0 -> receiveNonEmpty portState msgLength
+                              | BS.length msg < msgLength -> do 
+                                resRec <- receiveNonEmpty portState $ msgLength - BS.length msg
                                 case resRec of
-                                    Left ex -> return $ Left ex 
-                                    Right rec -> return $ Right $ BS.concat [msg,rec]   
-                            else return $ Right msg 
+                                    Left ex -> return $ Left ex
+                                    Right rec -> return $ Right $ BS.concat [msg, rec]
+                              | otherwise -> return $ Right msg 
 
 serialSendSafe :: PortState -> BS.ByteString -> Process (Maybe Int)
 serialSendSafe portState msg = do 
@@ -108,7 +106,7 @@ serialSendSafe portState msg = do
 sendFrame :: PortState -> BS.ByteString -> Process (Maybe String)
 sendFrame portState msg = do
     (_, opened) <- liftIO $ readIORef portState
-    if opened == False then return Nothing
+    if not opened then return Nothing
     else do
         sendLengthRes <- serialSendSafe portState bsLength
         case sendLengthRes of 

@@ -36,7 +36,7 @@ decodeFrame :: BS.ByteString -> Maybe Frame
 decodeFrame bs = case decode bs of 
     Just (Right frame, _) -> Just frame
     _ -> Nothing    
-    where decode = (liftM fromByteString) . decodeCyclic
+    where decode = liftM fromByteString . decodeCyclic
 
 sendFrame :: ProcessId -> Frame -> Process ()
 sendFrame targetId frame = do
@@ -54,7 +54,7 @@ sendFrameWithAck targetId frame = do
         expectAck :: Int -> Process Bool
         expectAck 0 = return False
         expectAck nTries = do 
-            res <- receiveTimeout timeout [ -- todo here
+            res <- receiveTimeout timeout [
                 matchIf innerAckRetMatcher innerAckRetHandler
               , matchIf (\(_, com, _) -> com == "frame") otherFrameHandler]
             case res of 
@@ -63,11 +63,10 @@ sendFrameWithAck targetId frame = do
                 Nothing -> return False
             where
                 innerAckRetMatcher :: (ProcessId, String, BS.ByteString) -> Bool 
-                innerAckRetMatcher (_, com, bs) = if com /= "frame" then False
-                    else case decodeFrame bs of
-                        Just AckFrame -> True
-                        Just RetFrame -> True
-                        _ -> False
+                innerAckRetMatcher (_, com, bs) = com == "frame" && case decodeFrame bs of
+                    Just AckFrame -> True
+                    Just RetFrame -> True
+                    _ -> False
 
                 innerAckRetHandler :: (ProcessId, String, BS.ByteString) -> Process Bool
                 innerAckRetHandler (_, _, bs) = case fromJust $ decodeFrame bs of
@@ -82,7 +81,7 @@ sendFrameWithAck targetId frame = do
                     case decodeFrame bs of 
                         Just frame -> do 
                             sendFrame targetId AckFrame
-                            send thisId (thisId, "frame-acked", codeFrame $ frame)
+                            send thisId (thisId, "frame-acked", codeFrame frame)
                             return False
                         _ -> do
                             sendFrame targetId RetFrame

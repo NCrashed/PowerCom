@@ -19,6 +19,7 @@ module Utility (
     ) where
 
 import Control.Distributed.Process
+import Control.Monad 
 
 exitMsg :: (ProcessId, String) -> Process Bool
 exitMsg (_, msg) = case msg of
@@ -28,6 +29,4 @@ exitMsg (_, msg) = case msg of
 while :: Process Bool -> Process ()
 while f = do
     val <- f 
-    case val of
-        True -> while f 
-        False -> return ()
+    when val $ while f

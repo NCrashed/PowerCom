@@ -25,6 +25,7 @@ module Channel.Buffer (
 import Data.List 
 import Data.IORef 
 import Control.Distributed.Process
+import Control.Monad 
 
 type MessageBuffer = IORef (String, [String], Int)
 
@@ -34,9 +35,7 @@ initMessageBuffer = liftIO $ newIORef ("", [], 0)
 addMessagePart :: MessageBuffer -> String -> Process ()
 addMessagePart buff s = liftIO $ do
     (name, raw, n) <- readIORef buff 
-    case length raw < n of
-        True -> writeIORef buff $ (name, raw ++ [s], n)
-        False -> return ()
+    when (length raw < n) $ writeIORef buff (name, raw ++ [s], n)
 
 isMessageReady :: MessageBuffer -> Process Bool
 isMessageReady buff = liftIO $ do

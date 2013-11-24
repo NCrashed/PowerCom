@@ -35,6 +35,8 @@ import Channel.Frame
 
 import Data.IORef
 import Data.Functor
+import Control.Monad
+import Control.Applicative
 import Control.Distributed.Process
 
 -- | Connection is bool value with remote user name
@@ -69,9 +71,8 @@ ifConnectedWithError :: Connection -> ProcessId -> Process () -> Process ()
 ifConnectedWithError connRef errorTransitId action = do 
     connection <- isConnected connRef
     thisId <- getSelfPid
-    case connection of 
-        True  -> action
-        False -> send errorTransitId (thisId, "error", "Connection is not established!")
+    if connection then action
+    else send errorTransitId (thisId, "error", "Connection is not established!") 
 
 ifConnected :: Connection -> Process () -> Process ()
 ifConnected = withConnectionDo True
@@ -82,42 +83,33 @@ ifNotConnected = withConnectionDo False
 withConnectionDo :: Bool -> Connection -> Process () -> Process ()
 withConnectionDo state connRef action = do 
     connection <- isConnected connRef
-    if connection == state then action
-    else return ()
+    when (connection == state) action
+
+getIdConOpt optionsRef conn = (,,) <$> getSelfPid <*> getOptions optionsRef <*> isConnected conn
 
 connectHandler :: ProcessId -> Connection -> InnerChannelOptions -> (ProcessId, String) -> Process Bool
 connectHandler physLayerId conn optionsRef (senderId, _) = do
-    thisId <- getSelfPid
-    options <- getOptions optionsRef
-    connection <- isConnected conn
-    case connection of 
-        False -> do 
-            informSender senderId "Connecting..."
-            send physLayerId (thisId, "reopen", options)
-            connResult <- expect :: Process Bool
-            case connResult of 
-                True -> do 
-                    sendRes <- sendFrameWithAck physLayerId $ LinkFrame $ userName options
-                    case sendRes of 
-                        True  -> openConnection conn >> return True -- uname will be sended later
-                        False -> do
-                            informSenderError senderId "Remote host is not answering!"
-                            return True
-                False -> return True
-        True -> return True
+    (thisId, options, connection) <- getIdConOpt optionsRef conn
+    if connection then return True else do 
+        informSender senderId "Connecting..."
+        send physLayerId (thisId, "reopen", options)
+        connResult <- expect :: Process Bool
+        if not connResult then return True else do 
+            sendRes <- sendFrameWithAck physLayerId $ LinkFrame $ userName options
+            if sendRes then openConnection conn >> return True
+            else do 
+                informSenderError senderId "Remote host is not answering!"
+                return True
+
 
 disconnectHandler :: ProcessId -> Connection -> InnerChannelOptions -> (ProcessId, String) -> Process Bool
 disconnectHandler physLayerId conn optionsRef (senderId, _) = do
-    thisId <- getSelfPid
-    options <- getOptions optionsRef
-    connection <- isConnected conn
-    case connection of 
-        True -> do 
-            informSender senderId "Disconnecting..."
-            sendFrameWithDisconnect conn senderId physLayerId $ UnlinkFrame $ userName options
-            closeConnection conn
-            return True
-        False -> return True
+    (thisId, options, connection) <- getIdConOpt optionsRef conn
+    when connection $ do
+        informSender senderId "Disconnecting..."
+        sendFrameWithDisconnect conn senderId physLayerId $ UnlinkFrame $ userName options
+        closeConnection conn
+    return True
 
 sendFrameWithDisconnect :: Connection -> ProcessId -> ProcessId -> Frame -> Process ()
 sendFrameWithDisconnect conn transitId targetId frame = 
@@ -126,8 +118,7 @@ sendFrameWithDisconnect conn transitId targetId frame =
 disconnectOnFail :: ProcessId -> Connection -> Process Bool -> Process ()
 disconnectOnFail transitId conn action = do 
     res <- action 
-    if res then return ()
-    else ifConnected conn $ do
+    unless res $ ifConnected conn $ do 
         thisId <- getSelfPid
         uname <- remoteUserName conn
         sendDisconnectUser transitId uname
