@@ -69,7 +69,11 @@ changeOptionsHandler physLayerId conn optionsRef (senderId, _, options, oldOptio
     thisId <- getSelfPid
     setOptions optionsRef options
     send physLayerId (thisId, "reopen", options)
-    ifConnected conn $ do 
+    res <- expect :: Process Bool
+    if not res then do
+        informSenderError senderId "Failed to reopen port!"
+        closeConnection conn
+    else ifConnected conn $ do 
         informSender senderId "Changing options..."
         sendFrameWithDisconnect conn senderId physLayerId $
             if userName oldOptions == userName options then frame 

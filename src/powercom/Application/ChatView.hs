@@ -23,11 +23,15 @@ module Application.ChatView (
     ) where
 
 import Graphics.UI.Gtk
+import Data.Time 
+import Data.Functor
+import System.Locale 
 
 putUserMessage :: TextView -> String -> String -> IO ()
 putUserMessage textView username msg = do 
+    timeStr <- formatTime defaultTimeLocale "%T" <$> getCurrentTime
     buffer <- textViewGetBuffer textView
-    bufferAddStringWithTag buffer ("[" ++ username ++ "]: ") "UsernameColor"
+    bufferAddStringWithTag buffer ("[" ++ timeStr ++ ": " ++ username ++ "]: ") "UsernameColor"
     bufferAddStringWithTag buffer (msg++"\n") "MessageColor"
 
     textViewScrollToEnd textView
