@@ -22,7 +22,6 @@ module Channel.Buffer (
     , isMessageReady
     ) where
 
-import Data.List 
 import Data.IORef 
 import Control.Distributed.Process
 import Control.Monad 
@@ -44,7 +43,7 @@ isMessageReady buff = liftIO $ do
 
 collectMessage :: MessageBuffer -> Process (String, String)
 collectMessage buff = liftIO $ do
-    (name, raw, n) <- readIORef buff 
+    (name, raw, _) <- readIORef buff 
     return (name, concat raw)
 
 clearBuffer :: MessageBuffer -> String -> Int -> Process ()

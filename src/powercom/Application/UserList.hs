@@ -18,7 +18,6 @@ module Application.UserList (
     ) where
 
 import Graphics.UI.Gtk
-import Graphics.UI.Gtk.Builder
 import Data.List (elemIndex)
 import Control.Monad 
 
@@ -29,7 +28,7 @@ addUserToList :: ListStore (String, String) -> String -> IO ()
 addUserToList store name = do
     list <- listStoreToList store 
     case elemIndex name $ map snd list of
-        Just i  -> return ()
+        Just _  -> return ()
         Nothing -> void $ listStoreAppend store (defaultUserIcon, name)
 
 removeUserFromList :: ListStore (String, String) -> String -> IO ()

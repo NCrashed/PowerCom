@@ -19,13 +19,6 @@ module Physical.Layer (
 
 import Control.Distributed.Process
 import qualified Data.ByteString                as BS
-import qualified System.Hardware.Serialport     as Serial
-import Data.Binary.Strict.Get 
-import Data.Binary.Put 
-import Data.Word 
-import Data.IORef
-import Data.Typeable
-import Data.Binary (Binary)
 import Control.Exception (SomeException)
 import Control.Monad (forever)
 
@@ -76,7 +69,7 @@ physicalLayerCycle options channelId = do
         Right port -> do
             send channelId (thisId, "info", "Serial port opened...")
 
-            receiveId <- spawnLocal $ receiveFrameCycle channelId port
+            spawnLocal $ receiveFrameCycle channelId port
 
             while $ receiveWait [
                   matchIf (\(_, com)    -> com == "exit")       exitMsg

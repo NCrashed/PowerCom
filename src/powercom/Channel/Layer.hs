@@ -21,7 +21,6 @@ import Channel.Options
 import Channel.Frame 
 import Channel.Buffer
 import Channel.Connection
-import Channel.Sending
 import Channel.Miscs
 import Channel.Processing 
 import Channel.ConnectionChecker 

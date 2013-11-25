@@ -74,14 +74,15 @@ sendFrameWithAck targetId frame = do
                         RetFrame -> do 
                            sendFrame targetId frame
                            expectAck $ nTries-1 
+                        _ -> error "Recieved wrong frame! Impossible state!"
 
                 otherFrameHandler :: (ProcessId, String, BS.ByteString) -> Process Bool
                 otherFrameHandler (_, _, bs) = do
                     thisId <- getSelfPid
                     case decodeFrame bs of 
-                        Just frame -> do 
+                        Just decodedFrame -> do 
                             sendFrame targetId AckFrame
-                            send thisId (thisId, "frame-acked", codeFrame frame)
+                            send thisId (thisId, "frame-acked", codeFrame decodedFrame)
                             return False
                         _ -> do
                             sendFrame targetId RetFrame

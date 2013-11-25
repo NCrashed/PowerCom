@@ -19,7 +19,6 @@ module Application.OptionDialog (
     ) where
 
 import Graphics.UI.Gtk
-import Graphics.UI.Gtk.Builder
 import Application.Types
 import System.Hardware.Serialport hiding (send)
 
@@ -28,8 +27,6 @@ import Control.Applicative
 import Control.Monad
 
 import Data.Word 
-import Data.Functor
-import Data.Data
 import Data.List
 import Data.IORef
 import Data.Maybe 
@@ -45,7 +42,7 @@ createEnumCombo :: (Eq a) => ComboBox         -- ^ Combo box to fill
     -> [a]                                    -- ^ List of values the combo be filled
     -> IO (a -> Maybe Int)                    -- ^ Matching function to search values in the combo
 createEnumCombo combo f descr = do
-    store <- comboBoxSetModelText combo
+    comboBoxSetModelText combo
     mapM_ (comboBoxAppendText combo . f) descr
     return $ \val -> elemIndex val descr
 
@@ -129,7 +126,7 @@ setupOptionDialog builder callbacks initArgs = do
 
     -- Combos
     portNameCombo <- builderGetObject builder castToComboBox "PortNameCombo"
-    portNameMatch <- createEnumCombo portNameCombo id =<< getSerialPorts
+    createEnumCombo portNameCombo id =<< getSerialPorts
 
     speedCombo <- builderGetObject builder castToComboBox "SpeedCombo"
     speedMatch <- createEnumCombo speedCombo portSpeed2String

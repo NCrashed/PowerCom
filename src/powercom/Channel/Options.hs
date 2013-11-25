@@ -34,13 +34,8 @@ module Channel.Options (
 
 import System.Hardware.Serialport
 
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Char8 as C8
-
 import Data.Binary (Binary(..))
 import Data.Binary.Get
-import Data.Binary.Put
 
 import Data.Word
 import Data.Typeable
@@ -201,7 +196,8 @@ instance Binary CommSpeed where
             7  -> return CS19200  
             8  -> return CS38400  
             9  -> return CS57600  
-            10 -> return CS115200     
+            10 -> return CS115200
+            _  -> return CS2400  
 
 instance Binary StopBits where
     put sb = case sb of 
@@ -213,6 +209,7 @@ instance Binary StopBits where
         case sb of
             0 -> return One
             1 -> return Two
+            _ -> return One
 
 instance Binary Parity where
     put pr = case pr of 
@@ -226,6 +223,7 @@ instance Binary Parity where
             0 -> return Even 
             1 -> return Odd 
             2 -> return NoParity
+            _ -> return NoParity
 
 instance Binary FlowControl where
     put fc = case fc of
@@ -237,24 +235,25 @@ instance Binary FlowControl where
         case fc of
             0 -> return Software
             1 -> return NoFlowControl
+            _ -> return NoFlowControl
 
 instance Binary SerialPortSettings where
-    put (SerialPortSettings commSpeed bitsPerWord stopb parity flowControl timeout) = do
-        put commSpeed
-        put bitsPerWord
-        put stopb
-        put parity
-        put flowControl
-        put timeout
+    put (SerialPortSettings speed wordBits stopbits parityBits flowCnt t) = do
+        put speed
+        put wordBits
+        put stopbits
+        put parityBits
+        put flowCnt
+        put t
 
     get = do
-        commSpeed   <- get :: Get CommSpeed
-        bitsPerWord <- get :: Get Word8
-        stopb       <- get :: Get StopBits
-        parity      <- get :: Get Parity
-        flowControl <- get :: Get FlowControl
-        timeout     <- get :: Get Int
-        return $ SerialPortSettings commSpeed bitsPerWord stopb parity flowControl timeout
+        speed       <- get :: Get CommSpeed
+        wordBits    <- get :: Get Word8
+        stopbits    <- get :: Get StopBits
+        parityBits  <- get :: Get Parity
+        flowCnt     <- get :: Get FlowControl
+        t           <- get :: Get Int
+        return $ SerialPortSettings speed wordBits stopbits parityBits flowCnt t
 
 instance Binary ChannelOptions where
     put o = do 
@@ -269,7 +268,7 @@ instance Binary ChannelOptions where
         uname <- get :: Get String 
         pname <- get :: Get String
         speed <- get :: Get CommSpeed 
-        stopb <- get :: Get StopBits
+        stbit <- get :: Get StopBits
         party <- get :: Get Parity 
         wordb <- get :: Get Word8 
         return ChannelOptions 
@@ -277,7 +276,7 @@ instance Binary ChannelOptions where
                  portName = uname 
                , userName = pname 
                , portSpeed = speed 
-               , portStopBits = stopb 
+               , portStopBits = stbit 
                , portParityBits = party
                , portWordBits = wordb 
                }

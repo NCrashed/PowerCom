@@ -28,7 +28,6 @@ import qualified Data.ByteString                as BS
 import qualified Data.ByteString.Lazy           as BL
 import Data.Binary.Strict.Get 
 import Data.Binary.Put 
-import Data.Word 
 import Data.IORef
 import Control.Exception (SomeException)
 import Control.Concurrent (yield)
@@ -56,7 +55,7 @@ closePort portState = do
 
 reopenPort :: PortState -> ChannelOptions -> Process (Maybe String)
 reopenPort portState options = do
-    (port, opened) <- liftIO $ readIORef portState 
+    (_, opened) <- liftIO $ readIORef portState 
     when opened $ closePort portState
 
     res <- try (liftIO $ 
@@ -78,8 +77,8 @@ receiveFrame portState = do
                 Right frameLength -> receiveNonEmpty portState $ fromIntegral frameLength
     where
         receiveNonEmpty :: PortState -> Int -> Process (Either String BS.ByteString)
-        receiveNonEmpty portState msgLength = do
-            (port, opened) <- liftIO $ readIORef portState
+        receiveNonEmpty pstate msgLength = do
+            (port, opened) <- liftIO $ readIORef pstate
             if not opened then return $ Left "Port closed!"
             else do
                 liftIO yield
@@ -87,9 +86,9 @@ receiveFrame portState = do
                 liftIO yield
                 case res of 
                     Left ex         -> return $ Left (show ex)
-                    Right msg | BS.length msg == 0 -> receiveNonEmpty portState msgLength
+                    Right msg | BS.length msg == 0 -> receiveNonEmpty pstate msgLength
                               | BS.length msg < msgLength -> do 
-                                resRec <- receiveNonEmpty portState $ msgLength - BS.length msg
+                                resRec <- receiveNonEmpty pstate $ msgLength - BS.length msg
                                 case resRec of
                                     Left ex -> return $ Left ex
                                     Right rec -> return $ Right $ BS.concat [msg, rec]
@@ -100,7 +99,7 @@ serialSendSafe portState msg = do
     (port, _) <- liftIO $ readIORef portState
     res <- try (liftIO $ Serial.send port msg) :: Process (Either SomeException Int)
     case res of 
-        Left err -> return Nothing
+        Left _ -> return Nothing
         Right l -> return $ Just l 
 
 sendFrame :: PortState -> BS.ByteString -> Process (Maybe String)
@@ -113,8 +112,8 @@ sendFrame portState msg = do
             Just 4 -> do 
                 sendedMsgRes <- serialSendSafe portState msg 
                 case sendedMsgRes of
-                    Just frameLength -> return Nothing
-                    _                -> return $ Just "Failed to send frame body!"
+                    Just _ -> return Nothing
+                    _      -> return $ Just "Failed to send frame body!"
             _ -> return $ Just "Failed to send frame length!"
         where
             bsLength :: BS.ByteString

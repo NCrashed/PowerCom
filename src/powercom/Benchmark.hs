@@ -13,18 +13,17 @@
 --
 --    You should have received a copy of the GNU General Public License
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
-module Main (main) where
+module Main (main) where 
 
 import Channel.Layer
 import Channel.Options
 import Utility
 
-import Control.Monad (forever)
+import Control.Monad (when)
 import Control.Distributed.Process
 import Control.Distributed.Process.Node
 import Control.Concurrent (threadDelay)
 import Network.Transport.Chan
-import System.Exit
 import System.Environment
 
 printUserMessage :: (ProcessId, String, String, String) -> Process Bool
@@ -43,7 +42,7 @@ printErrorMessage (_, _, msg) = do
   return True
 
 setupOptionsHandler :: (ProcessId, String, ChannelOptions) -> Process Bool
-setupOptionsHandler (_, _, options) = return True
+setupOptionsHandler = const $ return True
 
 userConnectHandler :: (ProcessId, String, String) -> Process Bool
 userConnectHandler (_, _, name) = do 
@@ -55,6 +54,7 @@ userDisconnectHandler (_, _, name) = do
    liftIO $ putStrLn $ "User disconnected: " ++ name 
    return True
 
+main :: IO ()
 main = do
   args <- getArgs
 

@@ -29,7 +29,6 @@ module Channel.CyclicCode (
 import qualified Data.ByteString as BS 
 import qualified Data.ByteString.Char8 as CH
 import Math.Polynomial
-import Data.List
 import Data.Bits
 import Data.Sequence (foldrWithIndex, fromList)
 import Data.Word 
@@ -37,7 +36,6 @@ import Control.Monad
 import Test.QuickCheck hiding ( (.&.) ) 
 
 type Word4 = Word8 -- only for semantic concise
-type Word3 = Word8
 type Word7 = Word8
 
 data Bit = Bit Bool 
@@ -101,7 +99,7 @@ decodeCyclic = mPack . mapM decodeWord8 . makePairs . BS.unpack
 
 makePairs :: [a] -> [(a, a)]
 makePairs [] = []
-makePairs (x:[]) = []
+makePairs (_:[]) = []
 makePairs (x1:x2:xs) = (x1, x2) : makePairs xs
 
 decodeWord8 :: (Word7, Word7) -> Maybe Word8 

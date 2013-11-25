@@ -17,7 +17,6 @@ module Channel.Processing (
     ) where
 
 import Channel.Buffer
-import Channel.CyclicCode
 import Channel.Connection
 import Channel.Frame 
 import Channel.Options
@@ -29,14 +28,12 @@ import Control.Applicative
 import Control.Monad 
 
 import qualified Data.ByteString as BS
-import Data.Functor
-import Data.Word 
 import Data.List
+import Data.Word 
 
 receiveFrameHandler :: ProcessId -> ProcessId -> MessageBuffer -> Connection -> InnerChannelOptions 
     -> (ProcessId, String, BS.ByteString) -> Process Bool 
 receiveFrameHandler physLayerId transitId messageBuffer conn optionsRef (_, com, byteFrame) = do 
-    thisId <- getSelfPid
     options <- getOptions optionsRef
     case decodeFrame byteFrame of 
         Just frame ->

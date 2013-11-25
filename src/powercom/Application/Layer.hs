@@ -27,7 +27,6 @@ import Event
 import Control.Distributed.Process
 import Control.Monad (forever)
 import Control.Concurrent (yield)
-import Graphics.UI.Gtk
 
 data AppEvents = 
     AppEvents

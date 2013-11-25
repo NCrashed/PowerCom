@@ -23,7 +23,6 @@ module Application.ChatView (
     ) where
 
 import Graphics.UI.Gtk
-import Graphics.UI.Gtk.Builder
 
 putUserMessage :: TextView -> String -> String -> IO ()
 putUserMessage textView username msg = do 

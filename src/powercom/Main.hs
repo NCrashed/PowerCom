@@ -19,7 +19,6 @@ import Paths_PowerCom
 import Application.Layer
 
 import Control.Monad (forever)
-import Control.Concurrent (threadDelay)
 import Control.Distributed.Process
 import Control.Distributed.Process.Node
 import Network.Transport.Chan
@@ -31,6 +30,7 @@ exitMsg (_, msg) = case msg of
   "exit" -> liftIO exitSuccess
   _      -> return ()
 
+main :: IO ()
 main = do
   args <- getArgs
 
@@ -40,7 +40,7 @@ main = do
 
   runProcess node $ do 
     rootId <- getSelfPid
-    appLevelId <- initApplicationLayer gladeFile (convertArgs args) rootId 
+    initApplicationLayer gladeFile (convertArgs args) rootId 
     forever $ receiveWait [match exitMsg]
     
   where 

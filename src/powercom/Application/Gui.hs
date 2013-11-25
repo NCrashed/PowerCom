@@ -19,7 +19,6 @@ module Application.Gui (
     ) where
 
 import Graphics.UI.Gtk
-import Graphics.UI.Gtk.Builder
 import Application.OptionDialog
 import Application.ChatView
 import Application.UserList
@@ -41,9 +40,10 @@ createAboutDialog = do
         , aboutDialogCopyright := "Copyright 2013 Гуща Антон, Нардид Анатолий, Оганян Левон"
         , aboutDialogComments  := "Application for messaging within serial port."
         , aboutDialogLicense   := Just license]
-    dialog `on` response $ \id -> widgetHideAll dialog 
+    dialog `on` response $ const $ widgetHideAll dialog 
     widgetShowAll dialog
 
+license :: String
 license = "PowerCom is free software: you can redistribute it and/or modify\n\
 \it under the terms of the GNU General Public License as published by\n\
 \the Free Software Foundation, either version 3 of the License, or\n\
@@ -82,8 +82,8 @@ openAction lastSaveRef chatView = do
 
 withFileChooserDo :: FileChooserDialog -> (String -> IO ()) -> IO () 
 withFileChooserDo dialog action = do 
-    response <- dialogRun dialog
-    case response of 
+    dialResponse <- dialogRun dialog
+    case dialResponse of 
         ResponseOk -> do 
             newFileNameOpt <- fileChooserGetFilename dialog
             forM_ newFileNameOpt action
@@ -153,7 +153,7 @@ initGui gladeFile initArgs callbacks = do
     onToolButtonClicked disconnectButton $ disconnectCallback callbacks
 
     -- User list
-    (userList, addUser', removeUser') <- initUserList builder (userName options)
+    (_, addUser', removeUser') <- initUserList builder (userName options)
 
     let api = GuiApi {
               printMessage = putUserMessage     chatTextView

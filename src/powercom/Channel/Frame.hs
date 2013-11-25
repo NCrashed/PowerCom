@@ -23,15 +23,12 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.UTF8 as UTF
 
-import Data.Binary (Binary(..))
 import Data.Functor
-import Data.Maybe
 import Data.Word 
 
 import Data.Binary.Strict.Get
 import Data.Binary.Put
 
-import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Applicative
 
@@ -124,8 +121,8 @@ instance FrameClass Frame where
                                     if start /= frameStartByte 
                                     then fail "Starting byte invalid!"
                                     else do
-                                        frameType <- getWord8
-                                        frame <- case frameType of
+                                        frameTypeId <- getWord8
+                                        frame <- case frameTypeId of
                                             0x00 -> return InformationFrame `ap` parseMarkedString `ap` getWord32be
                                             0x01 -> return DataPartFrame `ap` parseMarkedString
                                             0x02 -> return LinkFrame   `ap` parseMarkedString
@@ -155,10 +152,6 @@ parseKeyValue =  do
             valueCount <- getWord32be
             value <- getByteString $ word2int valueCount
             return (UTF.toString key, UTF.toString value)
-
-formPair :: [String] -> Maybe (String, String)
-formPair (x1:x2:[]) = Just (x1, x2)
-formPair _          = Nothing
 
 -- Testing 
 prop_toByteString :: Frame -> Bool

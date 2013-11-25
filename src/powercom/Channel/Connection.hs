@@ -85,6 +85,8 @@ withConnectionDo state connRef action = do
     connection <- isConnected connRef
     when (connection == state) action
 
+getIdConOpt :: InnerChannelOptions
+                 -> Connection -> Process (ProcessId, ChannelOptions, Bool)
 getIdConOpt optionsRef conn = (,,) <$> getSelfPid <*> getOptions optionsRef <*> isConnected conn
 
 connectHandler :: ProcessId -> Connection -> InnerChannelOptions -> (ProcessId, String) -> Process Bool
@@ -104,7 +106,7 @@ connectHandler physLayerId conn optionsRef (senderId, _) = do
 
 disconnectHandler :: ProcessId -> Connection -> InnerChannelOptions -> (ProcessId, String) -> Process Bool
 disconnectHandler physLayerId conn optionsRef (senderId, _) = do
-    (thisId, options, connection) <- getIdConOpt optionsRef conn
+    (_, options, connection) <- getIdConOpt optionsRef conn
     when connection $ do
         informSender senderId "Disconnecting..."
         sendFrameWithDisconnect conn senderId physLayerId $ UnlinkFrame $ userName options
@@ -119,7 +121,6 @@ disconnectOnFail :: ProcessId -> Connection -> Process Bool -> Process ()
 disconnectOnFail transitId conn action = do 
     res <- action 
     unless res $ ifConnected conn $ do 
-        thisId <- getSelfPid
         uname <- remoteUserName conn
         sendDisconnectUser transitId uname
         informSenderError transitId "Remote host is not answering! Connection closed."
