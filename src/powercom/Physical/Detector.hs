@@ -26,12 +26,13 @@ import Control.Monad (filterM)
 import Physical.Options
 import Channel.Options 
 
+-- TODO: serial port detection for other systems
 getSerialPorts :: IO [FilePath]
 getSerialPorts = case os of 
     "linux" -> do 
         fileList <- getDirectoryContents "/dev"
         filterM isSerialPort $ map (\s -> "/dev/" ++ s) fileList
-    _ -> return [] -- todo serial port detection for other systems
+    _ -> return []
 
 isSerialPort :: FilePath -> IO Bool
 isSerialPort fileName = do 
