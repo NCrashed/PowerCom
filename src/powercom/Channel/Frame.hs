@@ -38,12 +38,6 @@ class (Eq a) => FrameClass a where
     toByteString :: a -> BS.ByteString
     fromByteString :: BS.ByteString -> (Either String a, BS.ByteString)
 
-frameStartByte :: Word8
-frameStartByte = 0xFF
-
-frameEndByte :: Word8
-frameEndByte = 0xFF
-
 frameType :: Frame -> Word8
 frameType frame = case frame of 
                     InformationFrame _ _ -> 0x00
@@ -104,37 +98,29 @@ instance FrameClass Frame where
                             OptionFrame      os  -> putBounded $ putListLength os >> putOptions os
                             Upcheck              -> putShort
                          where 
-                            putBegin          = putWord8 frameStartByte >> putWord8 (frameType frame)
-                            putEnd            = putWord8 frameEndByte
-                            putShort          = putBegin >> putEnd
+                            putBegin          = putWord8 (frameType frame)
+                            putShort          = putBegin
                             putListLength     = putWord32be . int2word . length
                             putBSLength       = putWord32be . int2word . BS.length
                             putMarkedString s = let bs = UTF.fromString s in putBSLength bs >> putByteString bs
-                            putBounded      m = putBegin >> m >> putEnd
+                            putBounded      m = putBegin >> m
                             putOptions        = mapM_ (\(key,value) -> putMarkedString key >> putMarkedString value)
 
     fromByteString = runGet parseFrame
                             where
                                 parseFrame :: Get Frame
                                 parseFrame = do
-                                    start <- getWord8
-                                    if start /= frameStartByte 
-                                    then fail "Starting byte invalid!"
-                                    else do
-                                        frameTypeId <- getWord8
-                                        frame <- case frameTypeId of
-                                            0x00 -> return InformationFrame `ap` parseMarkedString `ap` getWord32be
-                                            0x01 -> return DataPartFrame `ap` parseMarkedString
-                                            0x02 -> return LinkFrame   `ap` parseMarkedString
-                                            0x03 -> return UnlinkFrame `ap` parseMarkedString
-                                            0x04 -> return AckFrame
-                                            0x05 -> return RetFrame
-                                            0x06 -> return OptionFrame `ap` parseKeyValue
-                                            0x07 -> return Upcheck
-                                            _    -> fail "Unknown frame type!"
-                                        end <- getWord8
-                                        if end /= frameEndByte then fail "Ending byte invalid!"
-                                        else return frame
+                                    frameTypeId <- getWord8
+                                    case frameTypeId of
+                                        0x00 -> return InformationFrame `ap` parseMarkedString `ap` getWord32be
+                                        0x01 -> return DataPartFrame `ap` parseMarkedString
+                                        0x02 -> return LinkFrame   `ap` parseMarkedString
+                                        0x03 -> return UnlinkFrame `ap` parseMarkedString
+                                        0x04 -> return AckFrame
+                                        0x05 -> return RetFrame
+                                        0x06 -> return OptionFrame `ap` parseKeyValue
+                                        0x07 -> return Upcheck
+                                        _    -> fail "Unknown frame type!"
                                 parseMarkedString = do
                                     len <- getWord32be
                                     body <- getByteString $ word2int len 
