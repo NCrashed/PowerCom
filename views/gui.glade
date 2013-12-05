@@ -291,7 +291,7 @@
   <object class="GtkDialog" id="OptionDialog">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
-    <property name="title" translatable="yes">Свойства</property>
+    <property name="title" translatable="yes">Options</property>
     <property name="resizable">False</property>
     <property name="modal">True</property>
     <property name="window_position">center-on-parent</property>
@@ -321,7 +321,7 @@
             </child>
             <child>
               <object class="GtkButton" id="CancelButton">
-                <property name="label" translatable="yes">Отмена</property>
+                <property name="label" translatable="yes">Cancel</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -349,14 +349,14 @@
               <object class="GtkLabel" id="label1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Имя порта:</property>
+                <property name="label" translatable="yes">Port name:</property>
               </object>
             </child>
             <child>
               <object class="GtkLabel" id="label2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Имя пользователя:</property>
+                <property name="label" translatable="yes">Username:</property>
               </object>
               <packing>
                 <property name="top_attach">1</property>
@@ -366,7 +366,7 @@
               <object class="GtkLabel" id="label3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Скорость:</property>
+                <property name="label" translatable="yes">Speed:</property>
               </object>
               <packing>
                 <property name="top_attach">2</property>
@@ -376,7 +376,7 @@
               <object class="GtkLabel" id="label4">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Стоп биты:</property>
+                <property name="label" translatable="yes">Stop bits:</property>
               </object>
               <packing>
                 <property name="top_attach">3</property>
@@ -386,7 +386,7 @@
               <object class="GtkLabel" id="label5">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Бит четности:</property>
+                <property name="label" translatable="yes">Parity:</property>
               </object>
               <packing>
                 <property name="top_attach">4</property>
@@ -396,7 +396,7 @@
               <object class="GtkLabel" id="label6">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Биты данных:</property>
+                <property name="label" translatable="yes">Data bits:</property>
               </object>
               <packing>
                 <property name="top_attach">5</property>
@@ -490,11 +490,6 @@
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkImage" id="image3">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="icon_name">gtk-cancel</property>
-  </object>
   <object class="GtkImage" id="image1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -505,5 +500,10 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="icon_name">gtk-open</property>
+  </object>
+  <object class="GtkImage" id="image3">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="icon_name">gtk-cancel</property>
   </object>
 </interface>
