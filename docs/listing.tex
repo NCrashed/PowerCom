@@ -1,0 +1,2219 @@
+\documentclass[russian,utf8,simple,emptystyle]{eskdtext}
+\usepackage[numberright]{eskdplain}
+\usepackage{paratype}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{epstopdf}
+\usepackage{multirow}
+%\usepackage[warn]{mathtext} 
+\usepackage{amssymb,amsmath,amsthm,latexsym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{listings}
+
+\ESKDdepartment{ФЕДЕРАЛЬНОЕ АГЕНТСТВО ПО ОБРАЗОВАНИЮ РФ}
+\ESKDcompany{МГТУ им. Н.Э.Баумана}
+\ESKDclassCode{23 0102}
+\ESKDtitle{Курсовая работа по дисциплине}
+\ESKDdocName{<<Сетевые технологии>>}
+\ESKDsignature{<<Локальная безадаптерная сеть>>}
+\renewcommand{\ESKDtheTitleFieldVII}{%
+\normalsize{Листинг PowerCom}
+}
+\ESKDauthor{Гуща~А.~В}
+\ESKDauthor{Нардид~А.~Н}
+\ESKDauthor{Оганян~Л.~П}
+\ESKDchecker{Галкин~В.~А}
+\ESKDtitleApprovedBy{\hspace{0cm}}{Галкин~В.~А}
+\ESKDtitleAgreedBy{\hspace{0cm}}{Галкин~В.~А}
+\ESKDtitleDesignedBy{Студент 4 курса группы ИУ5-72}{Гуща~А.~В}
+\ESKDtitleDesignedBy{Студент 4 курса группы ИУ5-72}{Нардид~А.~Н}
+\ESKDtitleDesignedBy{Студент 4 курса группы ИУ5-72}{Оганян~Л.~П}
+
+\renewcommand{\ESKDtheTitleFieldX}{%
+Москва
+ 
+\ESKDtheYear~г.}
+
+\renewcommand{\baselinestretch}{1}
+\renewcommand{\arraystretch}{1.5}
+
+\makeatletter
+\newcommand\FontSizesXI{%
+\renewcommand\normalsize{%
+   \@setfontsize\normalsize\@xipt{13.6}%
+   \abovedisplayskip 11\p@ \@plus3\p@ \@minus6\p@
+   \abovedisplayshortskip \z@ \@plus3\p@
+   \belowdisplayshortskip 6.5\p@ \@plus3.5\p@ \@minus3\p@
+   \belowdisplayskip \abovedisplayskip
+   \let\@listi\@listI}
+\normalsize
+\renewcommand\small{%
+   \@setfontsize\small\@xpt\@xiipt
+   \abovedisplayskip 10\p@ \@plus2\p@ \@minus5\p@
+   \abovedisplayshortskip \z@ \@plus3\p@
+   \belowdisplayshortskip 6\p@ \@plus3\p@ \@minus3\p@
+   \def\@listi{\leftmargin\leftmargini
+               \topsep 6\p@ \@plus2\p@ \@minus2\p@
+               \parsep 3\p@ \@plus2\p@ \@minus\p@
+               \itemsep \parsep}%
+   \belowdisplayskip \abovedisplayskip
+}
+\renewcommand\footnotesize{%
+   \@setfontsize\footnotesize\@ixpt{11}%
+   \abovedisplayskip 8\p@ \@plus2\p@ \@minus4\p@
+   \abovedisplayshortskip \z@ \@plus\p@
+   \belowdisplayshortskip 4\p@ \@plus2\p@ \@minus2\p@
+   \def\@listi{\leftmargin\leftmargini
+               \topsep 4\p@ \@plus2\p@ \@minus2\p@
+               \parsep 2\p@ \@plus\p@ \@minus\p@
+               \itemsep \parsep}%
+   \belowdisplayskip \abovedisplayskip
+}
+\renewcommand\scriptsize{\@setfontsize\scriptsize\@viiipt{9.5}}
+\renewcommand\tiny{\@setfontsize\tiny\@vipt\@viipt}
+\renewcommand\large{\@setfontsize\large\@xiipt{14}}
+\renewcommand\Large{\@setfontsize\Large\@xivpt{18}}
+\renewcommand\LARGE{\@setfontsize\LARGE\@xviipt{22}}
+\renewcommand\huge{\@setfontsize\huge\@xxpt{25}}
+\renewcommand\Huge{\@setfontsize\Huge\@xxvpt{30}}
+}
+\makeatother
+
+\lstset{ %
+  backgroundcolor=\color{white},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
+  basicstyle=\footnotesize,        % the size of the fonts that are used for the code
+  breakatwhitespace=true,          % sets if automatic breaks should only happen at whitespace
+  breaklines=true,                 % sets automatic line breaking
+  captionpos=b,                    % sets the caption-position to bottom
+  commentstyle=\color{ForestGreen},% comment style
+  deletekeywords={...},            % if you want to delete keywords from the given language
+  escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+  extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+  frame=none,                      % adds a frame around the code
+  keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+  keywordstyle=\color{BrickRed},   % keyword style
+  language=Haskell,                % the language of the code
+  morekeywords={*,...},            % if you want to add more keywords to the set
+  numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
+  numbersep=5pt,                   % how far the line-numbers are from the code
+  numberstyle=\scriptsize\color{CadetBlue}, % the style that is used for the line-numbers
+  rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+  showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+  showstringspaces=false,          % underline spaces within strings only
+  showtabs=false,                  % show tabs within strings adding particular underscores
+  stepnumber=1,                    % the step between two line-numbers. If it's 1, each line will be numbered
+  stringstyle=\color{OliveGreen},  % string literal style
+  tabsize=2,                       % sets default tabsize to 2 spaces
+  title=\lstname                   % show the filename of files included with \lstinputlisting; also try caption instead of title
+}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Main.hs}
+\begin{lstlisting}
+module Main (main) where
+
+import Paths_PowerCom
+import Application.Layer
+
+import Control.Monad (forever)
+import Control.Distributed.Process
+import Control.Distributed.Process.Node
+import Network.Transport.Chan
+import System.Exit
+import System.Environment
+
+exitMsg :: (ProcessId, String) -> Process ()
+exitMsg (_, msg) = case msg of
+  "exit" -> liftIO exitSuccess
+  _      -> return ()
+
+main :: IO ()
+main = do
+  args <- getArgs
+
+  t <- createTransport
+  node <- newLocalNode t initRemoteTable
+  gladeFile <- getDataFileName "views/gui.glade"
+
+  runProcess node $ do 
+    rootId <- getSelfPid
+    initApplicationLayer gladeFile (convertArgs args) rootId 
+    forever $ receiveWait [match exitMsg]
+    
+  where 
+    convertArgs args = case length args of
+        2 -> Just (head args, args !! 1)
+        _ -> Nothing
+\end{lstlisting}
+
+\section{Event.hs}
+\begin{lstlisting}
+module Event (
+      Event
+    , initEvent
+    , tag
+    , getTag
+    , riseEvent
+    , checkEvent
+    ) where
+
+import Data.IORef
+import Control.Distributed.Process
+
+data Event a = Event (IORef Bool) (IORef a)
+
+initEvent :: a -> IO (Event a)
+initEvent val = do
+    flagRef <- newIORef False
+    valRef <- newIORef val
+    return $ Event flagRef valRef
+
+getTag :: Event a -> IO a 
+getTag (Event _ val) = readIORef val
+
+tag :: Event a -> a -> IO (Event a)
+tag (Event flag valRef) val = do
+    writeIORef valRef val 
+    return $! Event flag valRef
+
+riseEvent :: Event a -> IO(Event a)
+riseEvent (Event flagRef val) = do 
+    writeIORef flagRef True
+    return $! Event flagRef val
+
+checkEvent :: Event a -> (a -> Process b) -> b -> Process b 
+checkEvent (Event flagRef valRef) f failVal = do
+    flag <- liftIO $ readIORef flagRef
+    if flag then do
+        val <- liftIO $ do 
+            writeIORef flagRef False
+            readIORef valRef
+        f val 
+    else return failVal
+\end{lstlisting}
+
+\section{Utility.hs}
+\begin{lstlisting}
+module Utility (
+      while
+    , exitMsg
+    ) where
+
+import Control.Distributed.Process
+import Control.Monad 
+
+exitMsg :: (ProcessId, String) -> Process Bool
+exitMsg (_, msg) = case msg of
+  "exit" -> return False
+  _      -> return True
+
+while :: Process Bool -> Process ()
+while f = do
+    val <- f 
+    when val $ while f
+\end{lstlisting}
+
+\section{Application}
+\subsection{ChatView.hs}
+\begin{lstlisting}
+module Application.ChatView (
+      initChatTextView
+    , putUserMessage
+    , putInfoMessage
+    , putErrorMessage
+    , textViewGetAllText
+    , textViewSetText
+    ) where
+
+import Graphics.UI.Gtk
+import Data.Time 
+import Data.Functor
+import System.Locale 
+
+putUserMessage :: TextView -> String -> String -> IO ()
+putUserMessage textView username msg = do 
+    timeStr <- formatTime defaultTimeLocale "%T" <$> getCurrentTime
+    buffer <- textViewGetBuffer textView
+    bufferAddStringWithTag buffer ("[" ++ timeStr ++ ": " ++ username ++ "]: ") "UsernameColor"
+    bufferAddStringWithTag buffer (msg++"\n") "MessageColor"
+
+    textViewScrollToEnd textView
+
+putInfoMessage :: TextView -> String -> IO ()
+putInfoMessage textView msg = do 
+    buffer <- textViewGetBuffer textView
+    bufferAddStringWithTag buffer (msg++"\n") "InfoColor"
+
+    textViewScrollToEnd textView
+
+putErrorMessage :: TextView -> String -> IO ()
+putErrorMessage textView msg = do 
+    buffer <- textViewGetBuffer textView
+    bufferAddStringWithTag buffer (msg++"\n") "ErrorColor"
+
+    textViewScrollToEnd textView
+
+textViewScrollToEnd :: TextView -> IO ()
+textViewScrollToEnd textView = do 
+    buffer <- textViewGetBuffer textView
+    endIter <- textBufferGetEndIter buffer
+    textViewScrollToIter textView endIter 0.0 Nothing 
+    return ()
+
+bufferAddStringWithTag :: TextBuffer -> String -> String -> IO ()
+bufferAddStringWithTag buffer string tagName =  do 
+    oldEnd <- textBufferGetEndIter buffer
+    line <- textIterGetLine oldEnd
+    offset <- textIterGetLineOffset oldEnd
+
+    textBufferInsert buffer oldEnd string
+
+    newEnd <- textBufferGetEndIter buffer 
+    newBegin <- textBufferGetIterAtLineOffset buffer line offset 
+    textBufferApplyTagByName buffer tagName newBegin newEnd
+
+    return ()
+
+textViewGetAllText :: TextView -> IO String 
+textViewGetAllText textView = do 
+    buffer <- textViewGetBuffer textView 
+    beginIter <- textBufferGetStartIter buffer 
+    endIter <- textBufferGetEndIter buffer 
+    textBufferGetText buffer beginIter endIter True
+
+bufferDeleteAllText :: TextBuffer -> IO ()
+bufferDeleteAllText buffer = do 
+    beginIter <- textBufferGetStartIter buffer 
+    endIter <- textBufferGetEndIter buffer 
+    textBufferDelete buffer beginIter endIter 
+
+textViewSetText :: TextView -> String -> IO ()
+textViewSetText textView text = do 
+    buffer <- textViewGetBuffer textView 
+    bufferDeleteAllText buffer 
+    bufferAddStringWithTag buffer text "HistoryColor"
+
+initChatTextView :: Builder -> IO TextView
+initChatTextView builder = do 
+    textView <- builderGetObject builder castToTextView "MessageArea"
+    buffer <- textViewGetBuffer textView
+    tagTable <- textBufferGetTagTable buffer
+
+    usernameColorTag <- textTagNew $ Just "UsernameColor"
+    usernameColorTag `set` 
+        [ textTagBackground := "White"
+        , textTagForeground := "Dark Green"
+        ]
+    textTagTableAdd tagTable usernameColorTag
+
+    messageColorTag <- textTagNew $ Just "MessageColor"
+    messageColorTag `set` 
+        [ textTagBackground := "White"
+        , textTagForeground := "Dark Blue"
+        ]
+    textTagTableAdd tagTable messageColorTag
+
+    errorColorTag <- textTagNew $ Just "ErrorColor"
+    errorColorTag `set` 
+        [ textTagBackground := "White"
+        , textTagForeground := "Crimson"
+        ]
+    textTagTableAdd tagTable errorColorTag
+
+    infoColorTag <- textTagNew $ Just "InfoColor"
+    infoColorTag `set` 
+        [ textTagBackground := "White"
+        , textTagForeground := "Cadet Blue"
+        ]
+    textTagTableAdd tagTable infoColorTag
+
+    historyColorTag <- textTagNew $ Just "HistoryColor"
+    historyColorTag `set` 
+        [ textTagBackground := "White"
+        , textTagForeground := "Chocolate"
+        ]
+    textTagTableAdd tagTable historyColorTag
+
+    return textView
+\end{lstlisting}
+
+\subsection{Gui.hs}
+\begin{lstlisting}
+module Application.Gui (
+      initGui
+    , runGui
+    ) where
+
+import Graphics.UI.Gtk
+import Application.OptionDialog
+import Application.ChatView
+import Application.UserList
+import Application.Types
+import Channel.Options
+
+import Control.Monad.IO.Class (liftIO)
+import Control.Concurrent
+import Data.Functor
+import Data.IORef
+import Data.Foldable 
+
+createAboutDialog :: IO ()
+createAboutDialog = do
+    dialog <- aboutDialogNew 
+    set dialog 
+        [ aboutDialogName      := "About application"
+        , aboutDialogVersion   := "1.1"
+        , aboutDialogCopyright := "Copyright 2013 Gushcha Anton, Nardid Anatoliy, Oganyan Levon"
+        , aboutDialogComments  := "Application for messaging within serial port."
+        , aboutDialogLicense   := Just license]
+    dialog `on` response $ const $ widgetHideAll dialog 
+    widgetShowAll dialog
+
+license :: String
+license = "PowerCom is free software: you can redistribute it and/or modify\n\
+\it under the terms of the GNU General Public License as published by\n\
+\the Free Software Foundation, either version 3 of the License, or\n\
+\(at your option) any later version.\n\
+\\n\
+\PowerCom is distributed in the hope that it will be useful,\n\
+\but WITHOUT ANY WARRANTY; without even the implied warranty of\n\
+\MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n\
+\GNU General Public License for more details.\n\
+\\n\
+\You should have received a copy of the GNU General Public License\n\
+\along with PowerCom.  If not, see <http://www.gnu.org/licenses/>."
+
+saveAction :: IORef (Maybe String) -> GuiApi -> IO ()
+saveAction lastSaveRef api = do 
+    lastSave <- readIORef lastSaveRef 
+    case lastSave of 
+        Nothing -> saveAsAction lastSaveRef api   
+        Just fileName -> saveChatToFile fileName api 
+
+saveAsAction :: IORef (Maybe String) -> GuiApi -> IO ()
+saveAsAction lastSaveRef api = do 
+    dialog <- newSaveDialog
+    withFileChooserDo dialog $ \s -> do 
+        writeIORef lastSaveRef $ Just s 
+        saveChatToFile s api
+    widgetDestroy dialog 
+
+openAction :: IORef (Maybe String) -> TextView -> IO ()
+openAction lastSaveRef chatView = do 
+    dialog <- newOpenDialog 
+    withFileChooserDo dialog $ \s -> do
+        writeIORef lastSaveRef $ Just s 
+        loadChatFromFile chatView s
+    widgetDestroy dialog 
+
+withFileChooserDo :: FileChooserDialog -> (String -> IO ()) -> IO () 
+withFileChooserDo dialog action = do 
+    dialResponse <- dialogRun dialog
+    case dialResponse of 
+        ResponseOk -> do 
+            newFileNameOpt <- fileChooserGetFilename dialog
+            forM_ newFileNameOpt action
+        _ -> return ()
+
+newSaveDialog :: IO FileChooserDialog
+newSaveDialog = fileChooserDialogNew Nothing Nothing FileChooserActionSave [("Save", ResponseOk), ("Cancel", ResponseCancel)]
+
+newOpenDialog :: IO FileChooserDialog 
+newOpenDialog = fileChooserDialogNew Nothing Nothing FileChooserActionOpen [("Open", ResponseOk), ("Cancel", ResponseCancel)]
+
+saveChatToFile :: FilePath -> GuiApi -> IO ()
+saveChatToFile filename api = writeFile filename =<< getChatText api 
+
+loadChatFromFile :: TextView -> FilePath -> IO ()
+loadChatFromFile textView fileName = textViewSetText textView =<< readFile fileName
+
+initGui :: FilePath -> Maybe (String, String) -> GuiCallbacks -> IO (Window, ChannelOptions, GuiApi)
+initGui gladeFile initArgs callbacks = do 
+    initGUI
+    builder <- builderNew
+    builderAddFromFile builder gladeFile
+    
+    -- Binding main window
+    mainWindow <- builderGetObject builder castToWindow "MainWindow"
+    onDestroy mainWindow mainQuit
+
+    -- Exit item
+    exitItem <- builderGetObject builder castToMenuItem "ExitItem"
+    exitItem `on` menuItemActivate $ mainQuit
+
+    -- Show about dialog
+    aboutItem <- builderGetObject builder castToMenuItem "AboutItem"
+    aboutItem `on` menuItemActivate $ createAboutDialog
+
+    -- OptionDialog 
+    (optionsRef, setupOptions') <- setupOptionDialog builder callbacks initArgs
+    options <- readIORef optionsRef
+
+    -- TextView for messages
+    chatTextView <- initChatTextView builder 
+
+    -- Send buffer
+    sendEntry <- builderGetObject builder castToEntry "SendEntry"
+
+    let sendBtnAction = do 
+            msg <- entryGetText sendEntry
+            username <- userName <$> readIORef optionsRef
+            putUserMessage chatTextView username msg
+            sendMessageCallback callbacks msg 
+            entrySetText sendEntry ""
+
+    sendEntry `on` keyPressEvent $ tryEvent $ do 
+        "Return" <- eventKeyName
+        liftIO sendBtnAction
+
+    -- Send Button
+    sendButton <- builderGetObject builder castToButton "SendButton"
+    sendButton `on` buttonActivated $ sendBtnAction
+        
+    -- Connect button
+    connectButton <- builderGetObject builder castToToolButton "ConnectButton"
+    onToolButtonClicked connectButton $ connectCallback callbacks
+        
+    -- Disconnect button
+    disconnectButton <- builderGetObject builder castToToolButton "DisconnectButton"
+    onToolButtonClicked disconnectButton $ disconnectCallback callbacks
+
+    -- User list
+    (_, addUser', removeUser') <- initUserList builder (userName options)
+
+    let api = GuiApi {
+              printMessage = putUserMessage     chatTextView
+            , printInfo    = putInfoMessage     chatTextView
+            , printError   = putErrorMessage    chatTextView
+            , setupOptions = setupOptions'
+            , getChatText  = textViewGetAllText chatTextView
+            , addUser      = addUser'
+            , removeUser   = removeUser'
+            }
+
+    -- save dialog
+    fileNameRef <- newIORef (Nothing :: Maybe String)
+    saveItem <- builderGetObject builder castToMenuItem "SaveItem"
+    saveItem `on` menuItemActivate $ saveAction fileNameRef api 
+
+    -- save as dialog
+    saveAsItem <- builderGetObject builder castToMenuItem "SaveAsItem"
+    saveAsItem `on` menuItemActivate $ saveAsAction fileNameRef api 
+
+    -- open dialog
+    openItem <- builderGetObject builder castToMenuItem "OpenItem"
+    openItem `on` menuItemActivate $ openAction fileNameRef chatTextView
+
+    return (mainWindow, options, api)
+            
+runGui :: Window -> IO ()
+runGui mainWindow = do 
+    -- Yielding GTK thread
+    timeoutAddFull (yield >> return True) priorityDefaultIdle 1
+    widgetShowAll mainWindow
+    mainGUI
+\end{lstlisting}
+
+\subsection{Layer.hs}
+\begin{lstlisting}
+module Application.Layer (
+    initApplicationLayer
+    ) where
+
+import Application.Gui 
+import Application.Types 
+import Channel.Layer
+import Channel.Options 
+import Utility (while, exitMsg)
+import Event
+
+import Control.Distributed.Process
+import Control.Monad (forever)
+import Control.Concurrent (yield)
+
+data AppEvents = 
+    AppEvents
+    {
+      sendEvent          :: Event String
+    , connectEvent       :: Event ()
+    , disconnectEvent    :: Event ()
+    , optionChangedEvent :: Event (ChannelOptions, ChannelOptions)
+    }
+
+initAppEvents :: IO AppEvents
+initAppEvents = do 
+    sendEvent'             <- initEvent ""
+    connectEvent'          <- initEvent ()
+    disconnectEvent'       <- initEvent ()
+    optionChangedEvent'    <- initEvent (defaultOptions, defaultOptions)
+
+    return 
+        AppEvents
+        {
+          sendEvent          = sendEvent'
+        , connectEvent       = connectEvent'
+        , disconnectEvent    = disconnectEvent'
+        , optionChangedEvent = optionChangedEvent'
+        }
+
+callbacks :: AppEvents -> GuiCallbacks
+callbacks events = 
+    GuiCallbacks {
+                   sendMessageCallback   = \msg -> do
+                    newEvent <- tag (sendEvent events) msg
+                    riseEvent newEvent
+                    return ()
+
+                 , connectCallback       = do 
+                    riseEvent $ connectEvent events
+                    return ()
+
+                 , disconnectCallback    = do
+                    riseEvent $ disconnectEvent events
+                    return ()
+
+                 , optionChangedCallback = \opt oldopt -> do 
+                    newEvent <- tag (optionChangedEvent events) (opt, oldopt)
+                    riseEvent newEvent
+                    return ()
+
+                 }
+
+printUserMessage :: GuiApi -> (ProcessId, String, String, String) -> Process Bool
+printUserMessage api (_, _, user, msg) = do 
+    liftIO $ printMessage api user msg 
+    return True
+
+printInfoMessage :: GuiApi -> (ProcessId, String, String) -> Process Bool
+printInfoMessage api (_, _, msg) = do 
+    liftIO $ printInfo api msg 
+    return True
+
+printErrorMessage :: GuiApi -> (ProcessId, String, String) -> Process Bool
+printErrorMessage api (_, _, msg) = do 
+    liftIO $ printError api msg 
+    return True
+
+setupOptionsHandler :: GuiApi -> (ProcessId, String, ChannelOptions) -> Process Bool
+setupOptionsHandler api (_, _, options) = do 
+    liftIO $ setupOptions api options 
+    return True 
+
+userConnectHandler :: GuiApi -> (ProcessId, String, String) -> Process Bool
+userConnectHandler api (_, _, name) = do 
+    liftIO $ addUser api name
+    return True 
+
+userDisconnectHandler :: GuiApi -> (ProcessId, String, String) -> Process Bool
+userDisconnectHandler api (_, _, name) = do 
+    liftIO $ removeUser api name
+    return True 
+    
+initApplicationLayer :: FilePath -> Maybe (String, String) -> ProcessId -> Process ()
+initApplicationLayer gladeFile args rootId = do 
+    spawnLocal $ do
+
+      events <- liftIO initAppEvents
+      (mainWindow, options, api) <- liftIO $ initGui gladeFile args $ callbacks events
+        
+      thisId <- getSelfPid
+      channelId <- initChannelLayer thisId options
+      
+      spawnLocal $ do
+          liftIO $ runGui mainWindow
+          mapM_ (`send` (thisId, "exit")) [thisId, channelId, rootId]
+      
+      spawnLocal $ forever $ do 
+        checkEvent (sendEvent events) (\s -> send channelId (thisId, "send", s)) ()
+        checkEvent (connectEvent events) (\() -> send channelId (thisId, "connect")) ()
+        checkEvent (disconnectEvent events) (\() -> send channelId (thisId, "disconnect")) ()
+        checkEvent (optionChangedEvent events) (\(opt, oldopt) -> do
+          liftIO $ removeUser api $ userName oldopt
+          liftIO $ addUser api $ userName opt
+          send channelId (thisId, "options", opt, oldopt)) ()
+        liftIO yield
+
+      while $ receiveWait [
+              matchIf (\(_, com)       -> com == "exit")         exitMsg
+            , matchIf (\(_, com, _, _) -> com == "message")    $ printUserMessage       api
+            , matchIf (\(_, com, _)    -> com == "info")       $ printInfoMessage       api
+            , matchIf (\(_, com, _)    -> com == "error")      $ printErrorMessage      api
+            , matchIf (\(_, com, _)    -> com == "options")    $ setupOptionsHandler    api
+            , matchIf (\(_, com, _)    -> com == "connect")    $ userConnectHandler     api
+            , matchIf (\(_, com, _)    -> com == "disconnect") $ userDisconnectHandler  api]
+
+    return ()
+\end{lstlisting}
+
+\subsection{OptionDialog.hs}
+\begin{lstlisting}
+module Application.OptionDialog (
+      setupOptionDialog
+    , defaultOptions
+    ) where
+
+import Graphics.UI.Gtk
+import Application.Types
+import System.Hardware.Serialport hiding (send)
+
+import Control.Monad.IO.Class (liftIO)
+import Control.Applicative 
+import Control.Monad
+
+import Data.Word 
+import Data.List
+import Data.IORef
+import Data.Maybe 
+
+
+import Channel.Options
+import Physical.Detector 
+
+-- |Fills combo with list of showable values and return function to
+-- matching that values with combo elements 
+createEnumCombo :: (Eq a) => ComboBox         -- ^ Combo box to fill
+    -> (a -> String)                          -- ^ Function to map elem into string, show for instance
+    -> [a]                                    -- ^ List of values the combo be filled
+    -> IO (a -> Maybe Int)                    -- ^ Matching function to search values in the combo
+createEnumCombo combo f descr = do
+    comboBoxSetModelText combo
+    mapM_ (comboBoxAppendText combo . f) descr
+    return $ \val -> elemIndex val descr
+
+-- | Data type used to mapping options to option dialog combos indexes
+data OptionMappings = OptionMappings
+    {
+      speedMapping    :: CommSpeed -> Maybe Int 
+    , stopBitMapping  :: StopBits  -> Maybe Int 
+    , parityMapping   :: Parity    -> Maybe Int
+    , portWordMapping :: Word8     -> Maybe Int
+    }
+
+defaultOptionsWithArgs :: Maybe (String, String) -> ChannelOptions
+defaultOptionsWithArgs args = case args of 
+    Nothing -> defaultOptions 
+    Just (portname, username) -> defaultOptions { portName = portname, userName = username}
+
+getOptionElements :: Builder -> IO (ComboBox, Entry, ComboBox, ComboBox, ComboBox, ComboBox)
+getOptionElements builder = (,,,,,) <$> 
+    getComboBox "PortNameCombo" <*>
+    getEntry "UserNameEntry" <*> 
+    getComboBox "SpeedCombo" <*>
+    getComboBox "StopBitCombo" <*>
+    getComboBox "ParityBitCombo" <*>
+    getComboBox "WordBitCombo"
+    where
+        getEntry     = builderGetObject builder castToEntry
+        getComboBox  = builderGetObject builder castToComboBox
+                
+        
+setupGuiOptions :: Builder -> OptionMappings -> ChannelOptions -> IO ChannelOptions
+setupGuiOptions builder mappings options = do
+    (_,userNameEntry,speedCombo,stopBitCombo,parityBitCombo,wordBitCombo) <- getOptionElements builder
+
+    --entrySetText portNameEntry $ portName options
+    entrySetText userNameEntry $ userName options
+    comboBoxSetActive speedCombo     $ fromMaybe 0 $ speedMapping mappings $ portSpeed options
+    comboBoxSetActive stopBitCombo   $ fromMaybe 0 $ stopBitMapping mappings $ portStopBits options
+    comboBoxSetActive parityBitCombo $ fromMaybe 0 $ parityMapping mappings $ portParityBits options
+    comboBoxSetActive wordBitCombo   $ fromMaybe 0 $ portWordMapping mappings $ portWordBits options
+
+    return options
+
+
+collectOptions :: Builder -> IO ChannelOptions
+collectOptions builder = do 
+    (portNameCombo,userNameEntry,speedCombo,stopBitCombo,parityBitCombo,wordBitCombo) 
+        <- getOptionElements builder
+
+    portNameVal    <- getFromCombo portNameCombo
+    userNameVal    <- entryGetText userNameEntry
+    portSpeedVal   <- string2PortSpeed <$> getFromCombo speedCombo
+    stopBitVal     <- string2StopBit   <$> getFromCombo stopBitCombo
+    parityBitVal   <- string2ParityBit <$> getFromCombo parityBitCombo
+    wordBitVal     <- getWordBit       <$> getFromCombo wordBitCombo
+
+    return ChannelOptions
+        {
+          portName       = portNameVal
+        , userName       = userNameVal
+        , portSpeed      = portSpeedVal
+        , portStopBits   = stopBitVal
+        , portParityBits = parityBitVal 
+        , portWordBits   = wordBitVal
+        }
+    where
+        getFromCombo :: ComboBox -> IO String
+        getFromCombo combo = do 
+            maybeText <- comboBoxGetActiveText combo
+            case maybeText of
+                Just str -> return str
+                Nothing  -> return ""
+        getWordBit s = case s of 
+            "" -> 7
+            _  -> read s :: Word8
+
+setupOptionDialog :: Builder -> GuiCallbacks -> Maybe (String, String) -> IO (IORef ChannelOptions, ChannelOptions -> IO ())
+setupOptionDialog builder callbacks initArgs = do
+    optionDialog <- builderGetObject builder castToDialog "OptionDialog" 
+    optionDialog `set` [windowDeletable := False]
+
+    -- Combos
+    portNameCombo <- builderGetObject builder castToComboBox "PortNameCombo"
+    createEnumCombo portNameCombo id =<< getSerialPorts
+
+    speedCombo <- builderGetObject builder castToComboBox "SpeedCombo"
+    speedMatch <- createEnumCombo speedCombo portSpeed2String
+        [CS110
+        ,CS300
+        ,CS600
+        ,CS1200
+        ,CS2400
+        ,CS4800
+        ,CS9600
+        ,CS19200
+        ,CS38400
+        ,CS57600
+        ,CS115200]
+
+    stopBitCombo <- builderGetObject builder castToComboBox "StopBitCombo"
+    stopBitMatch <- createEnumCombo stopBitCombo stopBit2String [One,Two]
+
+    parityBitCombo <- builderGetObject builder castToComboBox "ParityBitCombo"
+    parityBitMatch <- createEnumCombo parityBitCombo parityBit2String [Even, Odd, NoParity]
+
+    wordBitCombo <- builderGetObject builder castToComboBox "WordBitCombo"
+    wordBitMatch <- createEnumCombo wordBitCombo show [7,8]
+
+    let mappings = OptionMappings
+            {
+              speedMapping    = speedMatch
+            , stopBitMapping  = stopBitMatch
+            , parityMapping   = parityBitMatch
+            , portWordMapping = wordBitMatch
+            } 
+    -- Setup options
+    initOptions <- setupGuiOptions builder mappings $ defaultOptionsWithArgs initArgs
+    options <- newIORef initOptions
+
+    -- OptionDialog item
+    optionItem <- builderGetObject builder castToMenuItem "OptionItem"
+    optionItem `on` menuItemActivate $ widgetShowAll optionDialog
+
+    -- OptionDialog tool button
+    optionButton <- builderGetObject builder castToToolButton "OptionButton"
+    onToolButtonClicked optionButton $ widgetShowAll optionDialog
+
+    optionDialog `on` keyPressEvent $ tryEvent $ do 
+        "Return" <- eventKeyName
+        liftIO $ dialogResponse optionDialog $ ResponseUser 1 
+
+    optionDialog `on` keyPressEvent $ tryEvent $ do 
+        "Escape" <- eventKeyName 
+        liftIO $ dialogResponse optionDialog $ ResponseUser 2 
+
+    optionDialog `on` response $ \respId -> do
+          case respId of 
+            ResponseUser 1 -> do
+                newOptions <- collectOptions builder
+                oldOptions <- readIORef options 
+                writeIORef options newOptions
+                optionChangedCallback callbacks newOptions oldOptions
+            ResponseUser 2 -> return ()
+            _ -> return ()
+          widgetHideAll optionDialog
+
+    -- OptionDialog
+    return (options, void . setupGuiOptions builder mappings)
+\end{lstlisting}
+
+\subsection{Types.hs}
+\begin{lstlisting}
+module Application.Types (
+      GuiCallbacks(..)
+    , GuiApi(..)  
+    ) where 
+
+import Channel.Options
+
+data GuiCallbacks = GuiCallbacks {
+      sendMessageCallback   :: String -> IO ()
+    , connectCallback       :: IO ()
+    , disconnectCallback    :: IO ()
+    , optionChangedCallback :: ChannelOptions -> ChannelOptions -> IO ()
+}
+
+data GuiApi = GuiApi {
+      printMessage :: String -> String -> IO ()
+    , printInfo    :: String -> IO ()
+    , printError   :: String -> IO ()
+    , setupOptions :: ChannelOptions -> IO ()
+    , getChatText  :: IO String
+    , addUser      :: String -> IO ()
+    , removeUser   :: String -> IO ()
+}
+\end{lstlisting}
+
+\subsection{UserList.hs}
+\begin{lstlisting}
+module Application.UserList (
+      initUserList
+    ) where
+
+import Graphics.UI.Gtk
+import Data.List (elemIndex)
+import Control.Monad 
+
+defaultUserIcon :: String 
+defaultUserIcon =  "comotron-user"
+
+addUserToList :: ListStore (String, String) -> String -> IO ()
+addUserToList store name = do
+    list <- listStoreToList store 
+    case elemIndex name $ map snd list of
+        Just _  -> return ()
+        Nothing -> void $ listStoreAppend store (defaultUserIcon, name)
+
+removeUserFromList :: ListStore (String, String) -> String -> IO ()
+removeUserFromList store name = do 
+    list <- listStoreToList store 
+    case elemIndex name $ map snd list of
+        Just i  -> listStoreRemove store i 
+        Nothing -> return ()
+
+
+initUserList :: Builder -> String -> IO (TreeView, String -> IO (), String -> IO ())
+initUserList builder username = do
+    treeView <- builderGetObject builder castToTreeView "UserListView"
+    store <- listStoreNew [(defaultUserIcon, username)]
+    
+    treeModelSetColumn store (makeColumnIdString 0) fst 
+    treeModelSetColumn store (makeColumnIdString 1) snd 
+    treeViewSetModel treeView store 
+
+    return (treeView, addUserToList store, removeUserFromList store)
+\end{lstlisting}
+
+\section{Channel}
+\subsection{Buffer.hs}
+\begin{lstlisting}
+module Channel.Buffer (
+      MessageBuffer
+    , initMessageBuffer
+    , addMessagePart
+    , collectMessage
+    , clearBuffer
+    , isMessageReady
+    ) where
+
+import Data.IORef 
+import Control.Distributed.Process
+import Control.Monad 
+
+type MessageBuffer = IORef (String, [String], Int)
+
+initMessageBuffer :: Process MessageBuffer
+initMessageBuffer = liftIO $ newIORef ("", [], 0)
+
+addMessagePart :: MessageBuffer -> String -> Process ()
+addMessagePart buff s = liftIO $ do
+    (name, raw, n) <- readIORef buff 
+    when (length raw < n) $ writeIORef buff (name, raw ++ [s], n)
+
+isMessageReady :: MessageBuffer -> Process Bool
+isMessageReady buff = liftIO $ do
+    (_, raw, n) <- readIORef buff 
+    return $ length raw == n
+
+collectMessage :: MessageBuffer -> Process (String, String)
+collectMessage buff = liftIO $ do
+    (name, raw, _) <- readIORef buff 
+    return (name, concat raw)
+
+clearBuffer :: MessageBuffer -> String -> Int -> Process ()
+clearBuffer buff name n = liftIO $ writeIORef buff (name, [], n)
+\end{lstlisting}
+
+\subsection{Connection.hs}
+\begin{lstlisting}
+module Channel.Connection (
+      Connection
+    , initConnection
+    , closeConnection
+    , openConnection
+    , setRemoteUsername
+    , remoteUserName
+    , ifConnectedWithError
+    , ifConnected 
+    , ifNotConnected
+    , connectHandler
+    , disconnectHandler
+    , sendFrameWithDisconnect
+    ) where
+
+import Channel.Options
+import Channel.Sending
+import Channel.Miscs
+import Channel.Frame 
+
+import Data.IORef
+import Data.Functor
+import Control.Monad
+import Control.Applicative
+import Control.Distributed.Process
+
+-- | Connection is bool value with remote user name
+type Connection = IORef (Bool, String)
+
+initConnection :: Process Connection
+initConnection = liftIO $ newIORef (False, "")
+
+closeConnection :: Connection -> Process () 
+closeConnection conn = liftIO $ do
+    (_, uname) <- readIORef conn 
+    writeIORef conn (False, uname)
+
+-- User name is sended with link frame 
+openConnection :: Connection -> Process ()
+openConnection conn = liftIO $ do 
+    (_, uname) <- readIORef conn 
+    writeIORef conn (True, uname)
+
+isConnected :: Connection -> Process Bool 
+isConnected conn = liftIO $ fst <$> readIORef conn 
+
+setRemoteUsername :: Connection -> String -> Process ()
+setRemoteUsername conn uname = do 
+    bool <- isConnected conn 
+    liftIO $ writeIORef conn (bool, uname)
+
+remoteUserName :: Connection -> Process String
+remoteUserName conn = liftIO $ snd <$> readIORef conn 
+
+ifConnectedWithError :: Connection -> ProcessId -> Process () -> Process ()
+ifConnectedWithError connRef errorTransitId action = do 
+    connection <- isConnected connRef
+    thisId <- getSelfPid
+    if connection then action
+    else send errorTransitId (thisId, "error", "Connection is not established!") 
+
+ifConnected :: Connection -> Process () -> Process ()
+ifConnected = withConnectionDo True
+
+ifNotConnected :: Connection -> Process () -> Process ()
+ifNotConnected = withConnectionDo False
+
+withConnectionDo :: Bool -> Connection -> Process () -> Process ()
+withConnectionDo state connRef action = do 
+    connection <- isConnected connRef
+    when (connection == state) action
+
+getIdConOpt :: InnerChannelOptions
+                 -> Connection -> Process (ProcessId, ChannelOptions, Bool)
+getIdConOpt optionsRef conn = (,,) <$> getSelfPid <*> getOptions optionsRef <*> isConnected conn
+
+connectHandler :: ProcessId -> Connection -> InnerChannelOptions -> (ProcessId, String) -> Process Bool
+connectHandler physLayerId conn optionsRef (senderId, _) = do
+    (thisId, options, connection) <- getIdConOpt optionsRef conn
+    if connection then return True else do 
+        informSender senderId "Connecting..."
+        send physLayerId (thisId, "reopen", options)
+        connResult <- expect :: Process Bool
+        if not connResult then return True else do 
+            sendRes <- sendFrameWithAck physLayerId $ LinkFrame $ userName options
+            if sendRes then openConnection conn >> return True
+            else do 
+                informSenderError senderId "Remote host is not answering!"
+                return True
+
+
+disconnectHandler :: ProcessId -> Connection -> InnerChannelOptions -> (ProcessId, String) -> Process Bool
+disconnectHandler physLayerId conn optionsRef (senderId, _) = do
+    (_, options, connection) <- getIdConOpt optionsRef conn
+    when connection $ do
+        informSender senderId "Disconnecting..."
+        sendFrameWithDisconnect conn senderId physLayerId $ UnlinkFrame $ userName options
+        closeConnection conn
+    return True
+
+sendFrameWithDisconnect :: Connection -> ProcessId -> ProcessId -> Frame -> Process ()
+sendFrameWithDisconnect conn transitId targetId frame = 
+    disconnectOnFail transitId conn $ sendFrameWithAck targetId frame
+
+disconnectOnFail :: ProcessId -> Connection -> Process Bool -> Process ()
+disconnectOnFail transitId conn action = do 
+    res <- action 
+    unless res $ ifConnected conn $ do 
+        uname <- remoteUserName conn
+        sendDisconnectUser transitId uname
+        informSenderError transitId "Remote host is not answering! Connection closed."
+        closeConnection conn
+\end{lstlisting}
+
+\subsection{ConnectionChecker.hs}
+\begin{lstlisting}
+module Channel.ConnectionChecker (
+      spawnConnectionChecker
+    ) where
+
+import Channel.Connection 
+import Channel.Frame
+
+import Control.Distributed.Process
+import Control.Monad (forever)
+import Control.Concurrent (threadDelay)
+
+checkDelay :: Int
+checkDelay = 5000000
+
+spawnConnectionChecker :: ProcessId -> ProcessId -> Connection -> Process ProcessId
+spawnConnectionChecker chanLayerId appLayerId conn = spawnLocal $ forever $ do
+    ifConnected conn $ send chanLayerId (appLayerId, "transit-frame", toByteString Upcheck)
+    liftIO $ threadDelay checkDelay
+\end{lstlisting}
+
+\subsection{CyclicCode.hs}
+\begin{lstlisting}
+module Channel.CyclicCode (
+      codeCyclic
+    , decodeCyclic
+    , prop_codeDecodeEq
+    , prop_polyConverting
+    , prop_Word8BitCount
+    , prop_quotRemPoly
+    , prop_simpleCoding
+    , prop_fullCodingDecoding
+    , prop_falseWord4Coding
+    , prop_falseWord8Coding
+    ) where
+
+import qualified Data.ByteString as BS 
+import qualified Data.ByteString.Char8 as CH
+import Math.Polynomial
+import Data.Bits
+import Data.Sequence (foldrWithIndex, fromList)
+import Data.Word 
+import Control.Monad
+import Test.QuickCheck hiding ( (.&.) ) 
+
+type Word4 = Word8 -- only for semantic concise
+type Word7 = Word8
+
+data Bit = Bit Bool 
+    deriving Eq 
+
+instance Show Bit where
+    show (Bit val) = if val then "1" else "0"
+
+instance Num Bit where
+    (+) (Bit a) (Bit b) = case (a, b) of
+        (True, True) -> Bit False
+        (_, True)    -> Bit True
+        (True, _)    -> Bit True
+        _            -> Bit False
+
+    (-) = (+)
+    (*) (Bit a) (Bit b) = case (a, b) of
+        (False, _)   -> Bit False
+        (_, False)   -> Bit False
+        _            -> Bit True
+
+    abs ba = ba 
+    signum ba = ba
+    fromInteger int = Bit $ int > 0
+
+instance Fractional Bit where
+    (/) ba _ = ba
+    fromRational = undefined
+
+word8ToPoly :: Word8 -> Poly Bit
+word8ToPoly wd = poly LE $ map 
+    (Bit . testBit wd) [0 .. bitSize wd - 1]
+
+polyToWord8 :: Poly Bit -> Word8 
+polyToWord8 = foldrWithIndex coeff2Bit 0 . fromList . polyCoeffs LE
+    where
+        coeff2Bit :: Int -> Bit -> Word8 -> Word8 
+        coeff2Bit i (Bit b) acc = if b then acc `setBit` i else acc
+
+codeCyclic :: BS.ByteString -> BS.ByteString
+codeCyclic = BS.pack . concatMap (\(a,b) -> [a, b]) . map codeWord8 . BS.unpack 
+
+codeWord8 :: Word8 -> (Word7, Word7)
+codeWord8 wd = (codeWord4 highWord, codeWord4 lowWord)
+    where highWord = (wd .&. 0xF0) `shiftR` 4
+          lowWord  = wd .&. 0x0F
+
+codeWord4 :: Word4 -> Word7 -- n = 7 k = 4 
+codeWord4 wd = polyToWord8 finalPoly
+    where
+        polyGen     = poly BE [1,0,1,1]
+        wordPoly    = word8ToPoly wd
+        shiftedPoly = wordPoly `multPoly` poly BE [1, 0, 0, 0] -- (n - k) = 3
+        reminder    = shiftedPoly `remPoly` polyGen
+        finalPoly   = shiftedPoly `addPoly` reminder
+
+decodeCyclic :: BS.ByteString -> Maybe BS.ByteString
+decodeCyclic = mPack . mapM decodeWord8 . makePairs . BS.unpack
+    where
+        mPack = liftM BS.pack
+
+makePairs :: [a] -> [(a, a)]
+makePairs [] = []
+makePairs (_:[]) = []
+makePairs (x1:x2:xs) = (x1, x2) : makePairs xs
+
+decodeWord8 :: (Word7, Word7) -> Maybe Word8 
+decodeWord8 (a, b) = mShiftL4 (decodeWord4 a) `mOr` decodeWord4 b
+    where
+        mShiftL4 = liftM $ flip shiftL 4
+        mOr = liftM2 (.|.)
+
+decodeWord4 :: Word7 -> Maybe Word4 
+decodeWord4 wd = if syndrome == zero then Just finalWord else Nothing
+    where
+        polyGen     = poly BE [1,0,1,1]
+        wordPoly    = word8ToPoly wd
+        syndrome    = wordPoly `remPoly` polyGen
+        finalWord   = (wd `shiftR` 3) .&. 0x0F
+
+-- Testing
+prop_codeDecodeEq :: Word8 -> Bool
+prop_codeDecodeEq wd = case decodeWord8 $ codeWord8 wd of
+    Nothing  -> False
+    Just val -> wd == val
+
+prop_polyConverting :: Word8 -> Bool 
+prop_polyConverting wd = wd == polyToWord8 (word8ToPoly wd)
+
+prop_Word8BitCount :: Word8 -> Bool
+prop_Word8BitCount wd = bitSize wd == 8
+
+prop_quotRemPoly :: Word8 -> Word8 -> Bool
+prop_quotRemPoly a b = (b == 0) || (newa == pa)
+    where newa   = addPoly (multPoly q pb) r
+          (q, r) = quotRemPoly pa pb
+          pa = word8ToPoly a 
+          pb = word8ToPoly b
+
+prop_simpleCoding :: Word8 -> Bool
+prop_simpleCoding wd = case decodeWord4 $ codeWord4 cutedWd of
+    Nothing -> False
+    Just val -> val == cutedWd
+    where cutedWd = wd .&. 0x0F
+
+prop_fullCodingDecoding :: String -> Bool
+prop_fullCodingDecoding s = case decodeCyclic $ codeCyclic bs of
+    Nothing -> False
+    Just val -> val == bs 
+    where bs = CH.pack s
+
+newtype BitError = BitError Int 
+    deriving (Eq, Show)
+
+instance Arbitrary BitError where
+    arbitrary = oneof $ map (return . BitError) [0 .. 7]
+    shrink _ = []
+
+prop_falseWord4Coding :: Word8 -> BitError -> Bool
+prop_falseWord4Coding wd (BitError i) = case decodeWord4 $ complementBit (codeWord4 cutedWd) i of 
+    Nothing -> True
+    Just _ -> False 
+    where cutedWd = wd .&. 0x0F
+
+prop_falseWord8Coding :: Word8 -> BitError -> BitError -> Bool
+prop_falseWord8Coding wd (BitError i1) (BitError i2) = 
+    case decodeWord8 (cwd1 `complementBit` i1, cwd2 `complementBit` i2) of
+        Nothing -> True
+        Just _ -> False
+    where 
+        (cwd1, cwd2) = codeWord8 wd
+\end{lstlisting}
+
+\subsection{Frame.hs}
+\begin{lstlisting}
+module Channel.Frame (
+      Frame(..)
+    , FrameClass(..)
+    , prop_toByteString
+    ) where
+
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.UTF8 as UTF
+
+import Data.Functor
+import Data.Word 
+
+import Data.Binary.Strict.Get
+import Data.Binary.Put
+
+import Control.Monad
+import Control.Applicative
+
+import Test.QuickCheck
+
+class (Eq a) => FrameClass a where
+    toByteString :: a -> BS.ByteString
+    fromByteString :: BS.ByteString -> (Either String a, BS.ByteString)
+
+frameType :: Frame -> Word8
+frameType frame = case frame of 
+                    InformationFrame _ _ -> 0x00
+                    DataPartFrame _      -> 0x01
+                    LinkFrame        _   -> 0x02
+                    UnlinkFrame      _   -> 0x03
+                    AckFrame             -> 0x04
+                    RetFrame             -> 0x05
+                    OptionFrame      _   -> 0x06
+                    Upcheck              -> 0x07
+
+data Frame = InformationFrame String Word32
+             | DataPartFrame String
+             | OptionFrame [(String, String)]
+             | LinkFrame   String 
+             | UnlinkFrame String 
+             | AckFrame    
+             | RetFrame    
+             | Upcheck
+             deriving (Show, Eq)
+ 
+instance Arbitrary Frame where
+    arbitrary = oneof [ InformationFrame <$> (arbitrary :: Gen String) <*> (arbitrary :: Gen Word32)
+                      , DataPartFrame <$> (arbitrary :: Gen String)
+                      , LinkFrame   <$> (arbitrary :: Gen String)
+                      , UnlinkFrame <$> (arbitrary :: Gen String)
+                      , return AckFrame
+                      , return RetFrame
+                      , OptionFrame <$> (arbitrary :: Gen [(String, String)])
+                      , return Upcheck]
+
+    shrink (OptionFrame os) = [OptionFrame nos | nos <- shrink os]
+    shrink _ = []
+
+-- TODO: Move to binary class instead of custom
+{-instance Binary Frame where
+    put = put . toByteString
+    get = do
+        (res, _) <- liftM fromByteString
+        case res of 
+            Right frame -> return frame 
+            Left err -> error err-}
+
+int2word :: Int -> Word32 
+int2word = fromInteger . toInteger
+
+word2int :: Word32 -> Int 
+word2int = fromInteger . toInteger
+
+instance FrameClass Frame where
+    toByteString frame = BS.concat . BL.toChunks $ runPut $ case frame of 
+                            InformationFrame u n -> putBounded $ putMarkedString u >> putWord32be n
+                            DataPartFrame s      -> putBounded $ putMarkedString s 
+                            LinkFrame   u        -> putBounded $ putMarkedString u
+                            UnlinkFrame u        -> putBounded $ putMarkedString u
+                            AckFrame             -> putShort
+                            RetFrame             -> putShort
+                            OptionFrame      os  -> putBounded $ putListLength os >> putOptions os
+                            Upcheck              -> putShort
+                         where 
+                            putBegin          = putWord8 (frameType frame)
+                            putShort          = putBegin
+                            putListLength     = putWord32be . int2word . length
+                            putBSLength       = putWord32be . int2word . BS.length
+                            putMarkedString s = let bs = UTF.fromString s in putBSLength bs >> putByteString bs
+                            putBounded      m = putBegin >> m
+                            putOptions        = mapM_ (\(key,value) -> putMarkedString key >> putMarkedString value)
+
+    fromByteString = runGet parseFrame
+                            where
+                                parseFrame :: Get Frame
+                                parseFrame = do
+                                    frameTypeId <- getWord8
+                                    case frameTypeId of
+                                        0x00 -> return InformationFrame `ap` parseMarkedString `ap` getWord32be
+                                        0x01 -> return DataPartFrame `ap` parseMarkedString
+                                        0x02 -> return LinkFrame   `ap` parseMarkedString
+                                        0x03 -> return UnlinkFrame `ap` parseMarkedString
+                                        0x04 -> return AckFrame
+                                        0x05 -> return RetFrame
+                                        0x06 -> return OptionFrame `ap` parseKeyValue
+                                        0x07 -> return Upcheck
+                                        _    -> fail "Unknown frame type!"
+                                parseMarkedString = do
+                                    len <- getWord32be
+                                    body <- getByteString $ word2int len 
+                                    return $ UTF.toString body
+
+parseKeyValue :: Get [(String, String)]
+parseKeyValue =  do
+    pairsCount <- getWord32be
+    mapM parsePair [1..pairsCount]
+    where
+        parsePair :: a -> Get (String, String)
+        parsePair _ = do
+            keyCount <- getWord32be
+            key <- getByteString $ word2int keyCount
+            valueCount <- getWord32be
+            value <- getByteString $ word2int valueCount
+            return (UTF.toString key, UTF.toString value)
+
+-- Testing 
+prop_toByteString :: Frame -> Bool
+prop_toByteString f = case fst $ fromByteString $ toByteString f of 
+                        Left  _ -> False
+                        Right v -> v == f
+\end{lstlisting}
+
+\subsection{Layer.hs}
+\begin{lstlisting}
+module Channel.Layer (
+    initChannelLayer
+    ) where
+
+import Channel.Options
+import Channel.Frame 
+import Channel.Buffer
+import Channel.Connection
+import Channel.Miscs
+import Channel.Processing 
+import Channel.ConnectionChecker 
+
+import Physical.Layer 
+import Utility (while, exitMsg)
+
+import Control.Distributed.Process
+
+import qualified Data.ByteString as BS
+
+sendMessageHandler :: ProcessId -> Connection -> InnerChannelOptions -> (ProcessId, String, String) -> Process Bool 
+sendMessageHandler physLayerId conn optionsRef (senderId, _, msg) = do 
+    options <- getOptions optionsRef
+    ifConnectedWithError conn senderId $ 
+        mapM_ (sendFrameWithDisconnect conn senderId physLayerId) $ frameBuffers $ userName options
+    return True
+    where
+        frameBuffers :: String -> [Frame]
+        frameBuffers uname = startFrame : dataFrames msg
+            where  
+                lengthInFrame :: Int 
+                lengthInFrame = 200
+
+                startFrame :: Frame
+                startFrame = InformationFrame uname $ fromIntegral dataFramesCount
+
+                dataFramesCount :: Int 
+                dataFramesCount = (length msg `quot` lengthInFrame) + 1
+
+                dataFrames :: String -> [Frame]
+                dataFrames [] = []
+                dataFrames s =  (DataPartFrame $ take lengthInFrame s) : dataFrames (drop lengthInFrame s)
+
+-- TODO: Move to sending Frame instead of bytestring
+transitFrameHandler :: ProcessId -> Connection -> (ProcessId, String, BS.ByteString) -> Process Bool 
+transitFrameHandler physLayerId conn (senderId, _, framebs) = do
+    let (res, _) = fromByteString framebs 
+    case res of 
+        Right frame -> ifConnected conn $ sendFrameWithDisconnect conn senderId physLayerId frame
+        Left _ -> return ()
+    return True
+
+changeOptionsHandler :: ProcessId -> Connection -> InnerChannelOptions -> (ProcessId, String, ChannelOptions, ChannelOptions) -> Process Bool 
+changeOptionsHandler physLayerId conn optionsRef (senderId, _, options, oldOptions) = do 
+    thisId <- getSelfPid
+    setOptions optionsRef options
+    send physLayerId (thisId, "reopen", options)
+    res <- expect :: Process Bool
+    if not res then do
+        informSenderError senderId "Failed to reopen port!"
+        closeConnection conn
+    else ifConnected conn $ do 
+        informSender senderId "Changing options..."
+        sendFrameWithDisconnect conn senderId physLayerId $
+            if userName oldOptions == userName options then frame 
+            else frameWithRemoteNames
+    return True
+    where
+        frame :: Frame
+        frame = OptionFrame optionPairs
+
+        frameWithRemoteNames :: Frame
+        frameWithRemoteNames = OptionFrame $ optionPairs ++
+            [("remoteNameNew", userName options)
+            ,("remoteNameOld", userName oldOptions)] 
+            
+        optionPairs :: [(String, String)]
+        optionPairs = getOptionPairs options 
+            [ "portSpeed"
+            , "portStopBits"
+            , "portParityBits"
+            , "portWordBits"]
+
+transitError :: ProcessId -> (ProcessId, String, String) -> Process Bool
+transitError transitId (_, _, msg) = informSenderError transitId msg >> return True
+
+transitInfo :: ProcessId -> (ProcessId, String, String) -> Process Bool
+transitInfo transitId (_, _, msg) = informSender transitId msg >> return True 
+
+initChannelLayer :: ProcessId -> ChannelOptions -> Process ProcessId
+initChannelLayer appLayer options = spawnLocal $ do
+    thisId <- getSelfPid
+    optionsRef    <- initInnerOptions options
+    connection    <- initConnection
+    messageBuffer <- initMessageBuffer
+    physLayerId   <- initPhysicalLayer options thisId
+    spawnConnectionChecker thisId appLayer connection
+    while $ receiveWait [
+        -- From connection checker
+          matchIf (\(_, com, _)    -> com == "transit-frame") $ transitFrameHandler   physLayerId connection
+        -- From application layer
+        , matchIf (\(_, com)       -> com == "exit")         exitMsg
+        , matchIf (\(_, com, _)    -> com == "send")       $ sendMessageHandler   physLayerId connection optionsRef
+        , matchIf (\(_, com)       -> com == "connect")    $ connectHandler       physLayerId connection optionsRef
+        , matchIf (\(_, com)       -> com == "disconnect") $ disconnectHandler    physLayerId connection optionsRef
+        , matchIf (\(_, com, _, _) -> com == "options")    $ changeOptionsHandler physLayerId connection optionsRef
+        -- From physical layer
+        , matchIf (\(_, com, _)    -> com == "error")      $ transitError        appLayer
+        , matchIf (\(_, com, _)    -> com == "info")       $ transitInfo         appLayer
+        , matchIf (\(_, com, _)    -> com == "frame" || com == "frame-acked")      
+            $ receiveFrameHandler physLayerId appLayer messageBuffer connection optionsRef]
+
+    send physLayerId (thisId, "exit")
+\end{lstlisting}
+
+\subsection{Miscs.hs}
+\begin{lstlisting}
+module Channel.Miscs (
+      informSender
+    , informSenderError
+    , sendMessage
+    , sendConnectUser
+    , sendDisconnectUser
+    , sendReopenPort
+    , sendUpdateOptions
+    ) where
+
+import Channel.Options
+import Control.Distributed.Process 
+import Data.Typeable
+
+informSender :: ProcessId -> String -> Process ()
+informSender = sendTyped1 "info"
+
+informSenderError :: ProcessId -> String -> Process ()
+informSenderError = sendTyped1 "error"
+
+sendMessage :: ProcessId -> String -> String -> Process ()
+sendMessage = sendTyped2 "message"
+
+sendConnectUser :: ProcessId -> String -> Process ()
+sendConnectUser = sendTyped1 "connect"
+
+sendDisconnectUser :: ProcessId -> String -> Process ()
+sendDisconnectUser = sendTyped1 "disconnect"
+
+sendReopenPort :: ProcessId -> ChannelOptions -> Process ()
+sendReopenPort = sendTyped1 "reopen"
+
+sendUpdateOptions :: ProcessId -> ChannelOptions -> Process ()
+sendUpdateOptions = sendTyped1 "options"
+
+sendTyped1 :: (Binary a, Typeable a) => String -> ProcessId -> a -> Process ()
+sendTyped1 msgType targetId msg = do 
+    thisId <- getSelfPid
+    send targetId (thisId, msgType, msg)
+
+sendTyped2 :: (Binary a, Typeable a, Binary b, Typeable b) => 
+    String -> ProcessId -> a -> b -> Process ()
+sendTyped2 msgType targetId msg1 msg2 = do 
+    thisId <- getSelfPid
+    send targetId (thisId, msgType, msg1, msg2)
+\end{lstlisting}
+
+\subsection{Options.hs}
+\begin{lstlisting}
+{-# Language StandaloneDeriving, DeriveDataTypeable #-}
+module Channel.Options (
+      InnerChannelOptions
+    , initInnerOptions
+    , getOptions
+    , setOptions
+    , ChannelOptions(..)
+    , defaultOptions
+    , Binary(..)
+    , portSpeed2String
+    , string2PortSpeed
+    , stopBit2String
+    , string2StopBit
+    , parityBit2String
+    , string2ParityBit
+    , updateOptionsFromPairs
+    , getOptionPairs
+    ) where 
+
+import System.Hardware.Serialport
+
+import Data.Binary (Binary(..))
+import Data.Binary.Get
+
+import Data.Word
+import Data.Typeable
+import Data.IORef
+import Control.Distributed.Process
+
+deriving instance Typeable CommSpeed
+deriving instance Typeable StopBits
+deriving instance Typeable Parity 
+deriving instance Typeable FlowControl
+deriving instance Typeable SerialPortSettings
+
+deriving instance Show Parity 
+deriving instance Show StopBits 
+
+deriving instance Eq CommSpeed 
+deriving instance Eq StopBits 
+deriving instance Eq Parity 
+
+type InnerChannelOptions = IORef ChannelOptions
+
+initInnerOptions :: ChannelOptions -> Process InnerChannelOptions
+initInnerOptions opt = liftIO $ newIORef opt 
+
+getOptions :: InnerChannelOptions -> Process ChannelOptions
+getOptions inner = liftIO $ readIORef inner 
+
+setOptions :: InnerChannelOptions -> ChannelOptions -> Process ()
+setOptions inner opt = liftIO $ writeIORef inner opt 
+
+data ChannelOptions =
+    ChannelOptions 
+    {
+      portName      :: String
+    , userName      :: String
+    , portSpeed     :: CommSpeed
+    , portStopBits  :: StopBits  
+    , portParityBits:: Parity
+    , portWordBits  :: Word8
+    }
+    deriving (Typeable, Show)
+    
+defaultOptions :: ChannelOptions
+defaultOptions = ChannelOptions
+        {
+          portName       = "COM1"
+        , userName       = "Username"
+        , portSpeed      = CS2400
+        , portStopBits   = Two
+        , portParityBits = NoParity 
+        , portWordBits   = 8
+        }
+
+portSpeed2String :: CommSpeed -> String 
+portSpeed2String spd = case spd of
+    CS110    -> "110"
+    CS300    -> "300"
+    CS600    -> "600"
+    CS1200   -> "1200"
+    CS2400   -> "2400"
+    CS4800   -> "4800"
+    CS9600   -> "9600"
+    CS19200  -> "19200"
+    CS38400  -> "38400"
+    CS57600  -> "57600"
+    CS115200 -> "115200"
+
+string2PortSpeed :: String -> CommSpeed
+string2PortSpeed str = case str of
+    "110"    -> CS110
+    "300"    -> CS300
+    "600"    -> CS600
+    "1200"   -> CS1200
+    "2400"   -> CS2400
+    "4800"   -> CS4800
+    "9600"   -> CS9600
+    "19200"  -> CS19200
+    "38400"  -> CS38400
+    "57600"  -> CS57600
+    "115200" -> CS115200
+    _        -> CS2400
+
+stopBit2String :: StopBits -> String 
+stopBit2String sp =  case sp of 
+    One -> "One" 
+    Two -> "Two"
+
+string2StopBit :: String -> StopBits 
+string2StopBit s = case s of 
+    "One" -> One
+    "Two" -> Two
+    _     -> One
+
+parityBit2String :: Parity -> String 
+parityBit2String p = case p of
+    Even     -> "Even"
+    Odd      -> "Odd"
+    NoParity -> "No parity"
+
+string2ParityBit :: String -> Parity 
+string2ParityBit s = case s of
+    "Even"      -> Even 
+    "Odd"       -> Odd
+    "No parity" -> NoParity
+    _           -> NoParity
+
+getOptionPairs :: ChannelOptions -> [String] -> [(String, String)]
+getOptionPairs options = foldl getProperty []
+    where
+        getProperty :: [(String, String)] -> String -> [(String, String)]
+        getProperty acc prop = case prop of 
+            "portName"       -> (prop, portName options) : acc
+            "userName"       -> (prop, userName options) : acc
+            "portSpeed"      -> (prop, portSpeed2String $ portSpeed      options) : acc
+            "portStopBits"   -> (prop, stopBit2String   $ portStopBits   options) : acc
+            "portParityBits" -> (prop, parityBit2String $ portParityBits options) : acc
+            "portWordBits"   -> (prop, show $ portWordBits options) : acc
+            _                -> acc    
+
+updateOptionsFromPairs :: [(String, String)] -> ChannelOptions -> ChannelOptions
+updateOptionsFromPairs pairs options = foldl setProperty options pairs 
+    where
+        setProperty :: ChannelOptions -> (String, String) -> ChannelOptions
+        setProperty opt (name, val) = case name of 
+            "portName"       -> opt { portName = val }
+            "userName"       -> opt { userName = val }
+            "portSpeed"      -> opt { portSpeed = string2PortSpeed val }
+            "portStopBits"   -> opt { portStopBits = string2StopBit val }
+            "portParityBits" -> opt { portParityBits = string2ParityBit val }
+            "portWordBits"   -> opt { portWordBits = read val }
+            _                -> opt
+
+
+instance Binary CommSpeed where
+    put sp = case sp of 
+        CS110    -> put (0 :: Word8)
+        CS300    -> put (1 :: Word8)    
+        CS600    -> put (2 :: Word8)    
+        CS1200   -> put (3 :: Word8)    
+        CS2400   -> put (4 :: Word8)   
+        CS4800   -> put (5 :: Word8)   
+        CS9600   -> put (6 :: Word8)   
+        CS19200  -> put (7 :: Word8)  
+        CS38400  -> put (8 :: Word8)  
+        CS57600  -> put (9 :: Word8)  
+        CS115200 -> put (10 :: Word8)
+
+    get = do
+        sp <- getWord8
+        case sp of
+            0  -> return CS110    
+            1  -> return CS300    
+            2  -> return CS600    
+            3  -> return CS1200   
+            4  -> return CS2400   
+            5  -> return CS4800   
+            6  -> return CS9600   
+            7  -> return CS19200  
+            8  -> return CS38400  
+            9  -> return CS57600  
+            10 -> return CS115200
+            _  -> return CS2400  
+
+instance Binary StopBits where
+    put sb = case sb of 
+        One -> put (0 :: Word8)
+        Two -> put (1 :: Word8)
+
+    get = do
+        sb <- getWord8
+        case sb of
+            0 -> return One
+            1 -> return Two
+            _ -> return One
+
+instance Binary Parity where
+    put pr = case pr of 
+        Even     -> put (0 :: Word8)
+        Odd      -> put (1 :: Word8)
+        NoParity -> put (2 :: Word8)
+
+    get = do
+        pr <- getWord8
+        case pr of
+            0 -> return Even 
+            1 -> return Odd 
+            2 -> return NoParity
+            _ -> return NoParity
+
+instance Binary FlowControl where
+    put fc = case fc of
+        Software      -> put (0 :: Word8)
+        NoFlowControl -> put (1 :: Word8)
+
+    get = do
+        fc <- getWord8
+        case fc of
+            0 -> return Software
+            1 -> return NoFlowControl
+            _ -> return NoFlowControl
+
+instance Binary SerialPortSettings where
+    put (SerialPortSettings speed wordBits stopbits parityBits flowCnt t) = do
+        put speed
+        put wordBits
+        put stopbits
+        put parityBits
+        put flowCnt
+        put t
+
+    get = do
+        speed       <- get :: Get CommSpeed
+        wordBits    <- get :: Get Word8
+        stopbits    <- get :: Get StopBits
+        parityBits  <- get :: Get Parity
+        flowCnt     <- get :: Get FlowControl
+        t           <- get :: Get Int
+        return $ SerialPortSettings speed wordBits stopbits parityBits flowCnt t
+
+instance Binary ChannelOptions where
+    put o = do 
+        put (portName o)
+        put (userName o)
+        put (portSpeed o)
+        put (portStopBits o)
+        put (portParityBits o)
+        put (portWordBits o)
+
+    get = do 
+        uname <- get :: Get String 
+        pname <- get :: Get String
+        speed <- get :: Get CommSpeed 
+        stbit <- get :: Get StopBits
+        party <- get :: Get Parity 
+        wordb <- get :: Get Word8 
+        return ChannelOptions 
+               {
+                 portName = uname 
+               , userName = pname 
+               , portSpeed = speed 
+               , portStopBits = stbit 
+               , portParityBits = party
+               , portWordBits = wordb 
+               }
+\end{lstlisting}
+
+\subsection{Processing.hs}
+\begin{lstlisting}
+module Channel.Processing (
+      receiveFrameHandler
+    ) where
+
+import Channel.Buffer
+import Channel.Connection
+import Channel.Frame 
+import Channel.Options
+import Channel.Miscs
+import Channel.Sending
+
+import Control.Distributed.Process 
+import Control.Applicative
+import Control.Monad 
+
+import qualified Data.ByteString as BS
+import Data.List
+import Data.Word 
+
+receiveFrameHandler :: ProcessId -> ProcessId -> MessageBuffer -> Connection -> InnerChannelOptions 
+    -> (ProcessId, String, BS.ByteString) -> Process Bool 
+receiveFrameHandler physLayerId transitId messageBuffer conn optionsRef (_, com, byteFrame) = do 
+    options <- getOptions optionsRef
+    case decodeFrame byteFrame of 
+        Just frame ->
+            case frame of 
+                AckFrame -> return ()
+                RetFrame -> return ()
+                _ -> do 
+                    -- prevent double sending for not fully processed frames
+                    when (com /= "frame-acked") $ sendFrame physLayerId AckFrame 
+                    processFrame frame options
+        _ -> do 
+            informSenderError transitId "Failed to recieve frame!"
+            when (com /= "frame-acked") $ sendFrame physLayerId RetFrame
+    return True
+    where 
+        getRemoteNames :: [(String, String)] -> Maybe (String, String)
+        getRemoteNames props = (,) <$> getValue props "remoteNameNew" <*> getValue props "remoteNameOld"
+
+        getValue :: [(String, String)] -> String -> Maybe String 
+        getValue props key = snd <$> find (\(k, _) -> k == key) props
+
+        word2int :: Word32 -> Int 
+        word2int = fromInteger . toInteger
+
+        processFrame (InformationFrame name n) _ = clearBuffer messageBuffer name (word2int n)
+        
+        processFrame (DataPartFrame s) _ = do 
+            addMessagePart messageBuffer s 
+            filled <- isMessageReady messageBuffer
+            when filled $ do  
+                (name, msg) <- collectMessage messageBuffer
+                sendMessage transitId name msg
+
+        processFrame (OptionFrame props) options = do 
+            case getRemoteNames props of 
+                Just (newName, oldName) -> do 
+                    informSender transitId $ "Remote name changing, " ++ oldName ++ " to " ++ newName
+                    sendDisconnectUser transitId oldName
+                    sendConnectUser transitId newName
+                Nothing -> return ()
+            let newOptions = updateOptionsFromPairs props options
+            setOptions optionsRef newOptions
+            informSender transitId "Recieved new options from other side, changing..."
+            sendReopenPort physLayerId newOptions
+            sendUpdateOptions transitId newOptions
+
+
+        processFrame (LinkFrame name) options = do 
+            sendConnectUser transitId name
+            setRemoteUsername conn name
+            ifNotConnected conn $ do 
+                informSender transitId "Remote host connected!"
+                sendFrameWithAck physLayerId $ LinkFrame $ userName options
+                openConnection conn  
+
+        processFrame (UnlinkFrame name) options = do 
+            sendDisconnectUser transitId name
+            ifConnected conn $ do 
+                informSender transitId "Remote host disconnected!"
+                sendFrameWithAck physLayerId $ UnlinkFrame $ userName options
+                closeConnection conn 
+
+        processFrame (RetFrame) _ = informSender transitId "Main handler got ret frame, it is bad!"
+        processFrame (AckFrame) _ = informSender transitId "Main handler got ack frame, it is bad!"
+        processFrame (Upcheck) _ = return () --informSender transitId "Upcheck got"
+\end{lstlisting}
+
+\subsection{Sending.hs}
+\begin{lstlisting}
+module Channel.Sending (
+      sendFrameWithAck
+    , sendFrame
+    , codeFrame
+    , decodeFrame
+    ) where
+
+import Channel.Frame 
+import Channel.CyclicCode
+
+import Control.Distributed.Process 
+import Control.Monad
+
+import qualified Data.ByteString as BS 
+import Data.Maybe
+
+codeFrame :: Frame -> BS.ByteString 
+codeFrame = codeCyclic . toByteString
+
+decodeFrame :: BS.ByteString -> Maybe Frame 
+decodeFrame bs = case decode bs of 
+    Just (Right frame, _) -> Just frame
+    _ -> Nothing    
+    where decode = liftM fromByteString . decodeCyclic
+
+sendFrame :: ProcessId -> Frame -> Process ()
+sendFrame targetId frame = do
+    thisId <- getSelfPid
+    send targetId (thisId, "send", codeFrame frame)
+
+sendFrameWithAck :: ProcessId -> Frame -> Process Bool
+sendFrameWithAck targetId frame = do 
+    sendFrame targetId frame
+    expectAck sendTries
+    where 
+        sendTries = 3    
+        timeout = 1000000 -- 1 s
+
+        expectAck :: Int -> Process Bool
+        expectAck 0 = return False
+        expectAck nTries = do 
+            res <- receiveTimeout timeout [
+                matchIf innerAckRetMatcher innerAckRetHandler
+              , matchIf (\(_, com, _) -> com == "frame") otherFrameHandler]
+            case res of 
+                Just False -> expectAck nTries
+                Just True -> return True
+                Nothing -> return False
+            where
+                innerAckRetMatcher :: (ProcessId, String, BS.ByteString) -> Bool 
+                innerAckRetMatcher (_, com, bs) = com == "frame" && case decodeFrame bs of
+                    Just AckFrame -> True
+                    Just RetFrame -> True
+                    _ -> False
+
+                innerAckRetHandler :: (ProcessId, String, BS.ByteString) -> Process Bool
+                innerAckRetHandler (_, _, bs) = case fromJust $ decodeFrame bs of
+                        AckFrame -> return True
+                        RetFrame -> do 
+                           sendFrame targetId frame
+                           expectAck $ nTries-1 
+                        _ -> error "Recieved wrong frame! Impossible state!"
+
+                otherFrameHandler :: (ProcessId, String, BS.ByteString) -> Process Bool
+                otherFrameHandler (_, _, bs) = do
+                    thisId <- getSelfPid
+                    case decodeFrame bs of 
+                        Just decodedFrame -> do 
+                            sendFrame targetId AckFrame
+                            send thisId (thisId, "frame-acked", codeFrame decodedFrame)
+                            return False
+                        _ -> do
+                            sendFrame targetId RetFrame
+                            return False
+\end{lstlisting}
+
+\section{Physical}
+\subsection{Detector.hs}
+\begin{lstlisting}
+module Physical.Detector (
+    getSerialPorts
+    ) where
+
+import qualified System.Hardware.Serialport     as Serial
+import System.Info (os)
+import System.Directory (getDirectoryContents)
+import Control.Exception (SomeException, try)
+import Control.Monad (filterM)
+
+import Physical.Options
+import Channel.Options 
+
+-- TODO: serial port detection for other systems
+getSerialPorts :: IO [FilePath]
+getSerialPorts = case os of 
+    "linux" -> do 
+        fileList <- getDirectoryContents "/dev"
+        filterM isSerialPort $ map (\s -> "/dev/" ++ s) fileList
+    _ -> return []
+
+isSerialPort :: FilePath -> IO Bool
+isSerialPort fileName = do 
+    res <- try (Serial.openSerial fileName $ channel2physicalOptions defaultOptions)
+        :: IO (Either SomeException Serial.SerialPort)
+    case res of 
+        Right _ -> return True
+        Left _  -> return False
+\end{lstlisting}
+
+\subsection{Layer.hs}
+\begin{lstlisting}
+module Physical.Layer (
+    initPhysicalLayer
+    ) where
+
+import Control.Distributed.Process
+import qualified Data.ByteString                as BS
+import Control.Exception (SomeException)
+import Control.Monad (forever)
+
+import Physical.Options
+import Physical.Port
+import Utility (while, exitMsg)
+
+receiveFrameCycle :: ProcessId -> PortState -> Process () 
+receiveFrameCycle channelId portState = do
+    liftIO $ putStrLn "Recieving thread started..." 
+    forever $ do
+        frameResult <- receiveFrame portState 
+        thisId <- getSelfPid
+        case frameResult of 
+            Right bs -> send channelId (thisId, "frame", bs)
+            Left err -> send channelId (thisId, "error", "Error while receiving frame: " ++ err ++ "!")
+
+sendFrameHandler :: PortState -> (ProcessId, String, BS.ByteString) -> Process Bool
+sendFrameHandler portState (senderId, _, msg) = do 
+    thisId <- getSelfPid
+    result <- sendFrame portState msg
+    case result of 
+        Nothing -> return True
+        Just err -> do
+            send senderId (thisId, "error", err)
+            return True
+
+reopenPortHandler :: PortState -> (ProcessId, String, ChannelOptions) -> Process Bool 
+reopenPortHandler portState (senderId, _, options) = do
+    thisId <- getSelfPid
+    res <- reopenPort portState options
+    case res of
+        Just err -> send senderId False >> send senderId (thisId, "error", err) >> return True
+        Nothing  -> send senderId True  >> return True
+
+closePortHandler :: PortState -> (ProcessId, String) -> Process Bool 
+closePortHandler portState (_, _) = do 
+    closePort portState
+    return True
+
+physicalLayerCycle :: ChannelOptions -> ProcessId -> Process ()
+physicalLayerCycle options channelId = do
+    thisId <- getSelfPid
+    send channelId (thisId, "info", "Physical layer initialized...")
+
+    initResult <- try (initPort options) :: Process (Either SomeException PortState)
+    case initResult of 
+        Right port -> do
+            send channelId (thisId, "info", "Serial port opened...")
+
+            spawnLocal $ receiveFrameCycle channelId port
+
+            while $ receiveWait [
+                  matchIf (\(_, com)    -> com == "exit")       exitMsg
+                , matchIf (\(_, com, _) -> com == "send")       (sendFrameHandler port)
+                , matchIf (\(_, com, _) -> com == "reopen")     (reopenPortHandler port)
+                , matchIf (\(_, com) -> com == "close")         (closePortHandler port)]
+
+            closePort port
+        Left ex -> do
+            send channelId (thisId, "error", "Exception while initing physical layer: " ++ show ex)
+            (_, _, newOptions) <- expect :: Process (ProcessId, String, ChannelOptions)
+            send channelId (thisId, "info", "Got new options, trying to init physical layer...")
+            physicalLayerCycle newOptions channelId
+
+initPhysicalLayer :: ChannelOptions -> ProcessId -> Process ProcessId
+initPhysicalLayer options channelId = spawnLocal $ physicalLayerCycle options channelId
+\end{lstlisting}
+
+\subsection{Option.hs}
+\begin{lstlisting}
+module Physical.Options (
+      ChannelOptions(..)
+    , channel2physicalOptions
+    ) where 
+
+import Channel.Options
+import System.Hardware.Serialport
+
+channel2physicalOptions :: ChannelOptions -> SerialPortSettings
+channel2physicalOptions channel = SerialPortSettings
+    {
+      commSpeed    = portSpeed      channel
+    , bitsPerWord  = portWordBits   channel 
+    , stopb        = portStopBits   channel 
+    , parity       = portParityBits channel
+    , flowControl  = NoFlowControl
+    , timeout      = 0 -- other values will throw you in the abyss of pain! Please, don't touch ;)
+    }
+\end{lstlisting}
+
+\subsection{Port.hs}
+\begin{lstlisting}
+module Physical.Port (
+      PortState
+    , initPort
+    , closePort
+    , reopenPort
+    , receiveFrame
+    , serialSendSafe
+    , sendFrame    
+    ) where
+
+import qualified System.Hardware.Serialport     as Serial
+import qualified Data.ByteString                as BS
+import qualified Data.ByteString.Lazy           as BL
+import Data.Binary.Strict.Get 
+import Data.Binary.Put 
+import Data.IORef
+import Control.Exception (SomeException)
+import Control.Concurrent (yield)
+import Control.Distributed.Process
+import Control.Monad 
+
+import Physical.Options
+
+type PortState = IORef (Serial.SerialPort, Bool)
+
+toStrict :: BL.ByteString -> BS.ByteString
+toStrict = BS.concat . BL.toChunks
+
+initPort :: ChannelOptions -> Process PortState
+initPort channel = do
+    port <- liftIO $ Serial.openSerial (portName channel) (channel2physicalOptions channel)
+    liftIO $ newIORef (port, True)
+
+closePort :: PortState -> Process ()
+closePort portState = do
+    (port, opened) <- liftIO $ readIORef portState
+    when opened $ liftIO $ do 
+        Serial.closeSerial port
+        writeIORef portState (port, False)
+
+reopenPort :: PortState -> ChannelOptions -> Process (Maybe String)
+reopenPort portState options = do
+    (_, opened) <- liftIO $ readIORef portState 
+    when opened $ closePort portState
+
+    res <- try (liftIO $ 
+        Serial.openSerial (portName options) (channel2physicalOptions options)) 
+            :: Process (Either SomeException Serial.SerialPort)
+    case res of 
+        Left ex -> return $ Just $ show ex 
+        Right newPort -> liftIO $ writeIORef portState (newPort, True) >> return Nothing
+    
+
+receiveFrame :: PortState -> Process (Either String BS.ByteString)
+receiveFrame portState = do 
+    bsLengthRes <- receiveNonEmpty portState 4
+    case bsLengthRes of 
+        Left ex        -> return $ Left ex
+        Right bsLength -> 
+            case fst $ runGet getWord32be bsLength of
+                Left _            -> return $ Left ("Parsing failed! " ++ show bsLength)
+                Right frameLength -> receiveNonEmpty portState $ fromIntegral frameLength
+    where
+        receiveNonEmpty :: PortState -> Int -> Process (Either String BS.ByteString)
+        receiveNonEmpty pstate msgLength = do
+            (port, opened) <- liftIO $ readIORef pstate
+            if not opened then return $ Left "Port closed!"
+            else do
+                liftIO yield
+                res <- try (liftIO $ Serial.recv port msgLength) :: Process (Either SomeException BS.ByteString)
+                liftIO yield
+                case res of 
+                    Left ex         -> return $ Left (show ex)
+                    Right msg | BS.length msg == 0 -> receiveNonEmpty pstate msgLength
+                              | BS.length msg < msgLength -> do 
+                                resRec <- receiveNonEmpty pstate $ msgLength - BS.length msg
+                                case resRec of
+                                    Left ex -> return $ Left ex
+                                    Right rec -> return $ Right $ BS.concat [msg, rec]
+                              | otherwise -> return $ Right msg 
+
+serialSendSafe :: PortState -> BS.ByteString -> Process (Maybe Int)
+serialSendSafe portState msg = do 
+    (port, _) <- liftIO $ readIORef portState
+    res <- try (liftIO $ Serial.send port msg) :: Process (Either SomeException Int)
+    case res of 
+        Left _ -> return Nothing
+        Right l -> return $ Just l 
+
+sendFrame :: PortState -> BS.ByteString -> Process (Maybe String)
+sendFrame portState msg = do
+    (_, opened) <- liftIO $ readIORef portState
+    if not opened then return Nothing
+    else do
+        sendLengthRes <- serialSendSafe portState bsLength
+        case sendLengthRes of 
+            Just 4 -> do 
+                sendedMsgRes <- serialSendSafe portState msg 
+                case sendedMsgRes of
+                    Just _ -> return Nothing
+                    _      -> return $ Just "Failed to send frame body!"
+            _ -> return $ Just "Failed to send frame length!"
+        where
+            bsLength :: BS.ByteString
+            bsLength = toStrict $ runPut $ putWord32be $ fromIntegral frameLength
+            frameLength = BS.length msg
+\end{lstlisting}
+
+\end{document}
