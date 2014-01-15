@@ -19,7 +19,7 @@ cabal install
 Features
 ========
 
-1. Serial port detection (linux only now);
+1. Serial port detection (Windows and GNU/Linux);
 2. Colorfull chat;
 3. Logical connection with remote connection;
 4. Uplink checker;

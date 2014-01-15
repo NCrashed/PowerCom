@@ -1,43 +1,45 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Physical.Detector
+-- Copyright   :  (c) Gushcha Anton 2013
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  non-portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
+-- Facilities to search serial ports in Windows and GNU/Linux. 
 --
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
---
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+-----------------------------------------------------------------------------
 module Physical.Detector (
     getSerialPorts
     ) where
 
-import qualified System.Hardware.Serialport     as Serial
-import System.Info (os)
-import System.Directory (getDirectoryContents)
-import Control.Exception (SomeException, try)
-import Control.Monad (filterM)
+import qualified System.Hardware.Serialport as Serial (openSerial, SerialPort)
+import           System.Info                          (os)
+import           System.Directory                     (getDirectoryContents)
+import           Control.Exception                    (SomeException, try)
+import           Control.Monad                        (filterM)
 
-import Physical.Options
-import Channel.Options 
+import           Physical.Options                     (channel2physicalOptions)
+import           Channel.Options                      (defaultOptions) 
 
--- TODO: serial port detection for other systems
+-- | Returns list of available serial ports in the system.
+-- | Scans dev folder in GNU/Linux. As devices in linux are files, can find not only serial port.
+-- | Tries serial port name patterns like "COM4" to discover serial ports in Windows.
 getSerialPorts :: IO [FilePath]
 getSerialPorts = case os of 
     "linux" -> do 
         fileList <- getDirectoryContents "/dev"
-        filterM isSerialPort $ map (\s -> "/dev/" ++ s) fileList
+        filterM isSerialPort $ map ("/dev/" ++) fileList
+    "windows" ->
+        filterM isSerialPort $ take 20 $ map (("COM"++) . show) [0 :: Int ..]
     _ -> return []
 
+-- | Tries to open specified serial port name. If any error occurs, then
+-- | it is not serial port.
 isSerialPort :: FilePath -> IO Bool
 isSerialPort fileName = do 
     res <- try (Serial.openSerial fileName $ channel2physicalOptions defaultOptions)
         :: IO (Either SomeException Serial.SerialPort)
-    case res of 
-        Right _ -> return True
-        Left _  -> return False
+    return $ either (const False) (const True) res
