@@ -29,6 +29,14 @@ Features
 8. History saving/loading;
 9. Username changing on the fly;
 
+Testing with serial port
+========================
+
+You should have two serial ports linked to each other (com0com on Windows, socat in linux or [tty0tty](https://github.com/freemed/tty0tty)). For instance, one user for 'COM1' and second for 'COM2'. On posix you can use socat to create serial port pipe:
+```
+socat PTY,link=ttyS1 PTY,link=ttyS2
+```
+
 Screenshots
 ===========
 
