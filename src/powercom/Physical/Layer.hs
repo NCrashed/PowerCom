@@ -17,72 +17,77 @@ module Physical.Layer (
     initPhysicalLayer
     ) where
 
-import Control.Distributed.Process
-import qualified Data.ByteString                as BS
-import Control.Exception (SomeException)
-import Control.Monad (forever)
+import           Control.Distributed.Process      (expect, getSelfPid, liftIO, matchIf, Process, ProcessId, receiveWait, send, spawnLocal)
+import qualified Data.ByteString as BS (ByteString)
+import           Control.Monad         (forever)
 
-import Physical.Options
-import Physical.Port
-import Utility (while, exitMsg)
+import           Physical.Options      (ChannelOptions)
+import           Physical.Port         (closePort, initPort, PortState, receiveFrame, reopenPort, sendFrame)
+import           Utility               (exitMsg, while)
+import           Control.Monad.Trans.Either      (eitherT)
 
 receiveFrameCycle :: ProcessId -> PortState -> Process () 
 receiveFrameCycle channelId portState = do
-    liftIO $ putStrLn "Recieving thread started..." 
-    forever $ do
-        frameResult <- receiveFrame portState 
+    liftIO $ putStrLn "Receiving thread started..." 
+    forever $ do 
         thisId <- getSelfPid
-        case frameResult of 
-            Right bs -> send channelId (thisId, "frame", bs)
-            Left err -> send channelId (thisId, "error", "Error while receiving frame: " ++ err ++ "!")
+        eitherT 
+          (\err -> send channelId (thisId, "error", "Error while receiving frame: " ++ err ++ "!"))
+          (\bs  -> send channelId (thisId, "frame", bs))
+          $ receiveFrame portState
 
 sendFrameHandler :: PortState -> (ProcessId, String, BS.ByteString) -> Process Bool
 sendFrameHandler portState (senderId, _, msg) = do 
     thisId <- getSelfPid
-    result <- sendFrame portState msg
-    case result of 
-        Nothing -> return True
-        Just err -> do
-            send senderId (thisId, "error", err)
-            return True
+    eitherT 
+      (\err -> send senderId (thisId, "error", err) >> return True)
+      (const $ return True)  
+      $ sendFrame portState msg
 
 reopenPortHandler :: PortState -> (ProcessId, String, ChannelOptions) -> Process Bool 
 reopenPortHandler portState (senderId, _, options) = do
     thisId <- getSelfPid
-    res <- reopenPort portState options
-    case res of
-        Just err -> send senderId False >> send senderId (thisId, "error", err) >> return True
-        Nothing  -> send senderId True  >> return True
+    eitherT
+       (\err -> send senderId False >> send senderId (thisId, "error", err) >> return True)
+       (const $ send senderId True  >> return True)
+       $ reopenPort portState options
 
+closePort' :: PortState -> ProcessId -> Process ()
+closePort' portState senderId = do
+  thisId <- getSelfPid
+  eitherT
+    (\err -> send senderId (thisId, "error", err))
+    (const $ return ())
+    $ closePort portState
+  
 closePortHandler :: PortState -> (ProcessId, String) -> Process Bool 
-closePortHandler portState (_, _) = do 
-    closePort portState
-    return True
+closePortHandler portState (senderId, _) = closePort' portState senderId >> return True
 
 physicalLayerCycle :: ChannelOptions -> ProcessId -> Process ()
 physicalLayerCycle options channelId = do
     thisId <- getSelfPid
     send channelId (thisId, "info", "Physical layer initialized...")
 
-    initResult <- try (initPort options) :: Process (Either SomeException PortState)
-    case initResult of 
-        Right port -> do
-            send channelId (thisId, "info", "Serial port opened...")
+    eitherT 
+      (\ex -> do
+        send channelId (thisId, "error", "Exception while initing physical layer: " ++ show ex)
+        (_, _, newOptions) <- expect :: Process (ProcessId, String, ChannelOptions)
+        send channelId (thisId, "info", "Got new options, trying to init physical layer...")
+        physicalLayerCycle newOptions channelId
+      )
+      (\port -> do
+        send channelId (thisId, "info", "Serial port opened...")
 
-            spawnLocal $ receiveFrameCycle channelId port
+        spawnLocal $ receiveFrameCycle channelId port
 
-            while $ receiveWait [
-                  matchIf (\(_, com)    -> com == "exit")       exitMsg
-                , matchIf (\(_, com, _) -> com == "send")       (sendFrameHandler port)
-                , matchIf (\(_, com, _) -> com == "reopen")     (reopenPortHandler port)
-                , matchIf (\(_, com) -> com == "close")         (closePortHandler port)]
-
-            closePort port
-        Left ex -> do
-            send channelId (thisId, "error", "Exception while initing physical layer: " ++ show ex)
-            (_, _, newOptions) <- expect :: Process (ProcessId, String, ChannelOptions)
-            send channelId (thisId, "info", "Got new options, trying to init physical layer...")
-            physicalLayerCycle newOptions channelId
+        while $ receiveWait [
+              matchIf (\(_, com)    -> com == "exit")       exitMsg
+            , matchIf (\(_, com, _) -> com == "send")       (sendFrameHandler port)
+            , matchIf (\(_, com, _) -> com == "reopen")     (reopenPortHandler port)
+            , matchIf (\(_, com) -> com == "close")         (closePortHandler port)]
+        closePort' port channelId
+       )
+       $ initPort options
 
 initPhysicalLayer :: ChannelOptions -> ProcessId -> Process ProcessId
 initPhysicalLayer options channelId = spawnLocal $ physicalLayerCycle options channelId

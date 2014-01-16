@@ -55,7 +55,9 @@ Executable PowerCom
                           distributed-process-simplelocalnet,
                           network-transport-inmemory,
                           time >=1.4 && <1.5,
-                          old-locale >=1.0.0 && <1.1
+                          old-locale >=1.0.0 && <1.1,
+                          either >=3.4.2 && <3.5,
+                          mtl >=2.1.2 && <2.2
   Main-Is:           Main.hs
   Hs-Source-Dirs:    src/powercom
   Default-Language:  Haskell2010
@@ -80,7 +82,9 @@ executable Benchmark
                           distributed-process-simplelocalnet,
                           network-transport-inmemory,
                           time >=1.4 && <1.5,
-                          old-locale >=1.0.0 && <1.1
+                          old-locale >=1.0.0 && <1.1,
+                          either >=3.4.2 && <3.5,
+                          mtl >=2.1.2 && <2.2
   Main-Is:           Benchmark.hs
   Hs-Source-Dirs:    src/powercom
   Default-Language:  Haskell2010

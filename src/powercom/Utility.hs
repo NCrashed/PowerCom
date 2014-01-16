@@ -13,13 +13,18 @@
 --
 --    You should have received a copy of the GNU General Public License
 --    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+{-# LANGUAGE ScopedTypeVariables #-}
 module Utility (
       while
     , exitMsg
+    , liftExceptions
     ) where
 
 import Control.Distributed.Process
 import Control.Monad 
+import Control.Monad.Trans.Class  
+import Control.Monad.Trans.Either
+import Control.Exception (SomeException)
 
 exitMsg :: (ProcessId, String) -> Process Bool
 exitMsg (_, msg) = case msg of
@@ -30,3 +35,10 @@ while :: Process Bool -> Process ()
 while f = do
     val <- f 
     when val $ while f
+
+-- | Catches all synchronous exceptions all transforms them into EitherT String
+-- | monad transformer. 
+liftExceptions :: forall a . Process a -> EitherT String Process a
+liftExceptions action = do
+  res <- lift (try action :: Process (Either SomeException a))
+  eitherT (left.show) right $ hoistEither res
