@@ -38,7 +38,7 @@ import           Utility                              (liftExceptions)
 import           Control.Monad.Trans.Class            (lift)
 
 -- | Encapsulates information about serial port including
--- | info about open/close status.
+-- info about open/close status.
 newtype PortState = PortState (IORef (Serial.SerialPort, Bool))
 
 readState :: PortState -> Process (Serial.SerialPort, Bool)
@@ -51,8 +51,8 @@ toStrict :: BL.ByteString -> BS.ByteString
 toStrict = BS.concat . BL.toChunks
 
 -- | Serial port initialization. Takes channel layer options
--- | that is internally converted to physical options. All
--- | exceptions are lifted to EitherT monad transformer.
+-- that is internally converted to physical options. All
+-- exceptions are lifted to EitherT monad transformer.
 initPort :: ChannelOptions -> EitherT String Process PortState
 initPort channel = do
   res <- liftExceptions . liftIO $ Serial.openSerial (portName channel) (channel2physicalOptions channel)
@@ -60,7 +60,7 @@ initPort channel = do
   right $ PortState ref
 
 -- | Closes serial port. Can throw exception. All
--- | exceptions are lifted to EitherT monad transformer.
+-- exceptions are lifted to EitherT monad transformer.
 closePort :: PortState -> EitherT String Process ()
 closePort portState = do
     (port, opened) <- lift $ readState portState
@@ -69,8 +69,8 @@ closePort portState = do
         lift $ writeState portState (port, False)
 
 -- | If the serial port is opened, then closes it. After that
--- | tries to reopen serial port with particular options. All
--- | exceptions are lifted to EitherT monad transformer.
+-- tries to reopen serial port with particular options. All
+-- exceptions are lifted to EitherT monad transformer.
 reopenPort :: PortState -> ChannelOptions -> EitherT String Process ()
 reopenPort portState options = do
     (_, opened) <- lift $ readState portState 
@@ -80,11 +80,11 @@ reopenPort portState options = do
     lift $ writeState portState (newport, True)
     
 -- | Synchronous way to get a frame from serial port. Calling thread is blocked
--- | until frame is received or any error (parse or reading from port) is occured.
--- | All exceptions are lifted to EitherT monad transformer. 
--- | Function expects following physical frame format:
--- |   * 4 bytes for frame length
--- |   * Frame body with specified length 
+-- until frame is received or any error (parse or reading from port) is occured.
+-- All exceptions are lifted to EitherT monad transformer. 
+-- Function expects following physical frame format:
+--   * 4 bytes for frame length
+--   * Frame body with specified length 
 receiveFrame :: PortState -> EitherT String Process BS.ByteString
 receiveFrame portState = do 
     bsLength <- receiveNonEmpty portState 4
@@ -107,15 +107,15 @@ receiveFrame portState = do
              | otherwise -> right msg 
 
 -- | Tries to send bytes through specified serial port and returns a number of 
--- | transmited bytes. All exceptions are lifted to EitherT monad transformer.
+-- transmited bytes. All exceptions are lifted to EitherT monad transformer.
 serialSend :: PortState -> BS.ByteString -> EitherT String Process Int
 serialSend portState msg = do 
   (port, _) <- lift $ readState portState
   liftExceptions . liftIO $ Serial.send port msg
 
 -- | Sends frame bytestring through specified serial port. First 4 bytes of 
--- | frame length are sent and at last whole frame bytes are sent.
--- | All exceptions are lifted to EitherT monad transformer.
+-- frame length are sent and at last whole frame bytes are sent.
+-- All exceptions are lifted to EitherT monad transformer.
 sendFrame :: PortState -> BS.ByteString ->  EitherT String Process ()
 sendFrame portState msg = do
   (_, opened) <- lift $ readState portState

@@ -20,8 +20,8 @@ import Channel.Options
 import System.Hardware.Serialport
 
 -- | Converts options from channel to physical format.
--- | Physical options include also information about flow control and timeout for
--- | particular serial port.
+-- Physical options include also information about flow control and timeout for
+-- particular serial port.
 channel2physicalOptions :: ChannelOptions -> SerialPortSettings
 channel2physicalOptions channel = SerialPortSettings
     {

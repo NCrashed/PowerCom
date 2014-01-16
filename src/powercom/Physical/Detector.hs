@@ -25,8 +25,8 @@ import           Physical.Options                     (channel2physicalOptions)
 import           Channel.Options                      (defaultOptions) 
 
 -- | Returns list of available serial ports in the system.
--- | Scans dev folder in GNU/Linux. As devices in linux are files, can find not only serial port.
--- | Tries serial port name patterns like "COM4" to discover serial ports in Windows.
+-- Scans dev folder in GNU/Linux. As devices in linux are files, can find not only serial port.
+-- Tries serial port name patterns like "COM4" to discover serial ports in Windows.
 getSerialPorts :: IO [FilePath]
 getSerialPorts = case os of 
     "linux" -> do 
@@ -37,7 +37,7 @@ getSerialPorts = case os of
     _ -> return []
 
 -- | Tries to open specified serial port name. If any error occurs, then
--- | it is not serial port.
+-- it is not serial port.
 isSerialPort :: FilePath -> IO Bool
 isSerialPort fileName = do 
     res <- try (Serial.openSerial fileName $ channel2physicalOptions defaultOptions)
