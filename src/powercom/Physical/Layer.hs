@@ -19,21 +19,21 @@
 --  * Informing upper layers about errors and exceptions.
 --
 -- Physical layer is able to communicate only with Channel layer. Communication
--- protocol is following:
+-- protocol includes following points:
 --  
---  * Incoming "exit" - layer should stop all operations and exit.
+--  * Incoming \"exit\" - layer should stop all operations and exit.
 --
---  * Incoming "send" bytestring - frame to send to the other side.
+--  * Incoming \"send\" bytestring - frame to send to the other side.
 --
---  * Incoming "reopen" options - command to reopen serial port with new settings
+--  * Incoming \"reopen\" options - command to reopen serial port with new settings
 --
---  * Incoming "close" - layer should close serial port and don't send any frames until it is opened again.
+--  * Incoming \"close\" - layer should close serial port and don't send any frames until it is opened again.
 --
---  * Outgoing "info" string - useful information for upper layers.
+--  * Outgoing \"info\" string - useful information for upper layers.
 --
---  * Outgoing "error" string - "something went wrong" information for upper layers.
+--  * Outgoing \"error\" string - /something went wrong/ information for upper layers.
 --  
---  * Outgoing "frame" bytestring - layer received frame from other side.
+--  * Outgoing \"frame\" bytestring - layer received frame from other side.
 -----------------------------------------------------------------------------
 module Physical.Layer (
     initPhysicalLayer
