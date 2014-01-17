@@ -1,7 +1,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Physical.Detector
--- Copyright   :  (c) Gushcha Anton 2013
+-- Copyright   :  (c) Gushcha Anton 2013-2014
 -- License     :  GNU GPLv3 (see the file LICENSE)
 -- 
 -- Maintainer  :  ncrashed@gmail.com

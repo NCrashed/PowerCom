@@ -1,18 +1,40 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Physical.Detector
+-- Copyright   :  (c) Gushcha Anton 2013-2014
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
+-- System physical layer. It has following main purposes: 
 --
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
+--  * Opening/Closing serial port.
 --
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+--  * Sending/Receiving frames as byte array.
+--
+--  * Reopening serial port on demand from upper layers with new settings.
+--
+--  * Informing upper layers about errors and exceptions.
+--
+-- Physical layer is able to communicate only with Channel layer. Communication
+-- protocol is following:
+--  
+--  * Incoming "exit" - layer should stop all operations and exit.
+--
+--  * Incoming "send" bytestring - frame to send to the other side.
+--
+--  * Incoming "reopen" options - command to reopen serial port with new settings
+--
+--  * Incoming "close" - layer should close serial port and don't send any frames until it is opened again.
+--
+--  * Outgoing "info" string - useful information for upper layers.
+--
+--  * Outgoing "error" string - "something went wrong" information for upper layers.
+--  
+--  * Outgoing "frame" bytestring - layer received frame from other side.
+-----------------------------------------------------------------------------
 module Physical.Layer (
     initPhysicalLayer
     ) where
@@ -26,6 +48,8 @@ import           Physical.Port         (closePort, initPort, PortState, receiveF
 import           Utility               (exitMsg, while)
 import           Control.Monad.Trans.Either      (eitherT)
 
+-- | Infinite cycle of frame receiving. Informs channel layer
+-- about errors and automatically sends received frames.
 receiveFrameCycle :: ProcessId -> PortState -> Process () 
 receiveFrameCycle channelId portState = do
     liftIO $ putStrLn "Receiving thread started..." 
@@ -36,6 +60,8 @@ receiveFrameCycle channelId portState = do
           (\bs  -> send channelId (thisId, "frame", bs))
           $ receiveFrame portState
 
+-- | Called when "send" message is received from channel layer. Tries to
+-- send frame bytestring to the other side and informs the sender about errors. 
 sendFrameHandler :: PortState -> (ProcessId, String, BS.ByteString) -> Process Bool
 sendFrameHandler portState (senderId, _, msg) = do 
     thisId <- getSelfPid
@@ -44,6 +70,8 @@ sendFrameHandler portState (senderId, _, msg) = do
       (const $ return True)  
       $ sendFrame portState msg
 
+-- | Called when "reopen" message is received from channel layer. Tries to
+-- reopen the serial port and informs the sender about errors.
 reopenPortHandler :: PortState -> (ProcessId, String, ChannelOptions) -> Process Bool 
 reopenPortHandler portState (senderId, _, options) = do
     thisId <- getSelfPid
@@ -52,6 +80,7 @@ reopenPortHandler portState (senderId, _, options) = do
        (const $ send senderId True  >> return True)
        $ reopenPort portState options
 
+-- | Handy function to close serial port with informing upper layers about errors.
 closePort' :: PortState -> ProcessId -> Process ()
 closePort' portState senderId = do
   thisId <- getSelfPid
@@ -60,9 +89,16 @@ closePort' portState senderId = do
     (const $ return ())
     $ closePort portState
   
+-- | Called when "close" message is received from channel layer. Tries to
+-- close the serial port and informs the sender about errors.
 closePortHandler :: PortState -> (ProcessId, String) -> Process Bool 
 closePortHandler portState (senderId, _) = closePort' portState senderId >> return True
 
+-- | Main function of physical layer. If it cannot initialize serial port, it
+-- will wait for new port options to try again.
+--
+-- The function spawns receiving thread that operates independently. Upper layer (the second
+-- argument) should support Physical <-> Channel layers communication protocol.
 physicalLayerCycle :: ChannelOptions -> ProcessId -> Process ()
 physicalLayerCycle options channelId = do
     thisId <- getSelfPid
@@ -89,5 +125,7 @@ physicalLayerCycle options channelId = do
        )
        $ initPort options
 
+-- | Entry point for physical layer. Takes initial port settings and upper layer id.
+-- Upper layer is informed about all errors that raised in the layer. 
 initPhysicalLayer :: ChannelOptions -> ProcessId -> Process ProcessId
 initPhysicalLayer options channelId = spawnLocal $ physicalLayerCycle options channelId
