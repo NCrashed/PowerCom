@@ -1,18 +1,16 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Utility
+-- Copyright   :  (c) Gushcha Anton 2013-2014
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
+-- Often used utility functions.
 --
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
---
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+-----------------------------------------------------------------------------
 {-# LANGUAGE ScopedTypeVariables #-}
 module Utility (
       while
@@ -26,11 +24,16 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Control.Exception (SomeException)
 
+-- | Default handler for terminating protocol between layers.
+-- If handler returns "False", layer listening function exits and
+-- layer terminates.
 exitMsg :: (ProcessId, String) -> Process Bool
 exitMsg (_, msg) = case msg of
   "exit" -> return False
   _      -> return True
 
+-- | Runs the action until it returns "False". Most layers use this
+-- function to organize listening cycle.
 while :: Process Bool -> Process ()
 while f = do
     val <- f 
