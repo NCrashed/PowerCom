@@ -1,18 +1,21 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Main
+-- Copyright   :  (c) Gushcha Anton 2013-2014
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
+-- Benchmarking module that runs in console without gui. There are stubs for
+-- application layer functions.
 --
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
---
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+-- The test tries to connect to the other side (other instance of the benchmark)
+-- over 5 seconds after the beginning. The first two arguments are as usual:
+-- port name and user name. The third one is name for the test file that would
+-- be sent over the serial port. 
+-----------------------------------------------------------------------------
 module Main (main) where 
 
 import Channel.Layer
@@ -26,34 +29,41 @@ import Control.Concurrent (threadDelay)
 import Network.Transport.Chan
 import System.Environment
 
+-- | Handler for incoming user messages.
 printUserMessage :: (ProcessId, String, String, String) -> Process Bool
 printUserMessage (_, _, user, msg) = do 
   liftIO $ putStrLn $ "[" ++ user ++ "]:" ++ msg 
   return True
 
+-- | Handler for local info messages.
 printInfoMessage :: (ProcessId, String, String) -> Process Bool
 printInfoMessage (_, _, msg) = do 
   liftIO $ putStrLn $ "Info: " ++ msg 
   return True
 
+-- | Handler for local error messages.
 printErrorMessage :: (ProcessId, String, String) -> Process Bool
 printErrorMessage (_, _, msg) = do 
   liftIO $ putStrLn $ "Error: " ++ msg 
   return True
 
+-- | Stub handler for changing options event.
 setupOptionsHandler :: (ProcessId, String, ChannelOptions) -> Process Bool
 setupOptionsHandler = const $ return True
 
+-- | Stub handler for user connection event.
 userConnectHandler :: (ProcessId, String, String) -> Process Bool
 userConnectHandler (_, _, name) = do 
   liftIO $ putStrLn $ "User connected: " ++ name 
   return True
 
+-- | Stub handler for user disconnecting event.
 userDisconnectHandler :: (ProcessId, String, String) -> Process Bool
 userDisconnectHandler (_, _, name) = do 
    liftIO $ putStrLn $ "User disconnected: " ++ name 
    return True
 
+-- | Main benchmark function.
 main :: IO ()
 main = do
   args <- getArgs
