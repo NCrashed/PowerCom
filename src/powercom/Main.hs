@@ -1,35 +1,31 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Main
+-- Copyright   :  (c) Gushcha Anton 2013-2014
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
---
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
---
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+-- Startup PowerCom module. The main purpose is to create Cloud Haskell
+-- transport system and initialize first layer (Application layer). User
+-- can pass two arguments: default serial port name and default user name.
+-----------------------------------------------------------------------------
 module Main (main) where
 
 import Paths_PowerCom
 import Application.Layer
+import Utility
 
-import Control.Monad (forever)
 import Control.Distributed.Process
 import Control.Distributed.Process.Node
 import Network.Transport.Chan
-import System.Exit
 import System.Environment
 
-exitMsg :: (ProcessId, String) -> Process ()
-exitMsg (_, msg) = case msg of
-  "exit" -> liftIO exitSuccess
-  _      -> return ()
-
+-- | Main application function. Initializes application layer and waits
+-- terminating command, also retrieves gui resource file and parses 
+-- input arguments for channel layer.
 main :: IO ()
 main = do
   args <- getArgs
@@ -41,7 +37,7 @@ main = do
   runProcess node $ do 
     rootId <- getSelfPid
     initApplicationLayer gladeFile (convertArgs args) rootId 
-    forever $ receiveWait [match exitMsg]
+    while $ receiveWait [match exitMsg]
     
   where 
     convertArgs args = case length args of

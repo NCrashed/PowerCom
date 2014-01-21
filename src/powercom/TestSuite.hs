@@ -1,30 +1,28 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Main
+-- Copyright   :  (c) Gushcha Anton 2013-2014
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
---
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
---
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+-- Default test suit.
+-----------------------------------------------------------------------------
 module Main (main) where
 
 import Channel.Frame
 import Channel.CyclicCode
 
 import Test.Framework as TF (defaultMain, testGroup, Test)
---import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 
+-- | Runs application unit tests.
 main :: IO ()
 main = defaultMain tests
 
+-- | List of all application tests.
 tests :: [TF.Test]
 tests = [
         testGroup "QuickCheck Channel.Frame" [
@@ -40,9 +38,6 @@ tests = [
                , testProperty "Error coding word4" prop_falseWord4Coding
                , testProperty "Error coding word8" prop_falseWord8Coding
             ]
-        -- For future HUnit integration
-        --testGroup "Point tests Data.Decimal" [
-        --        testCase "pi to 3dp"     (dec 3 3142  @=? realFracToDecimal 3 piD)]
        ]
 
   
