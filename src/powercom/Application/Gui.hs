@@ -1,18 +1,19 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Application.Gui
+-- Copyright   :  (c) Gushcha Anton 2013-2014
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
---
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
---
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+-- Module defines all GUI procedures. There are defined all save/load/about
+-- dialogs and main window logic. Also this module collects gui functions for
+-- interconnecting gui and ppplication layer in one structure "GuiApi". 
+-- Application layer passes "GuiCallbacks" to bind callbacks to corresponding
+-- events.
+-----------------------------------------------------------------------------
 module Application.Gui (
       initGui
     , runGui
@@ -31,6 +32,7 @@ import Data.Functor
 import Data.IORef
 import Data.Foldable 
 
+-- | Creates about dialog with information about authors, license and version.
 createAboutDialog :: IO ()
 createAboutDialog = do
     dialog <- aboutDialogNew 
@@ -43,6 +45,7 @@ createAboutDialog = do
     dialog `on` response $ const $ widgetHideAll dialog 
     widgetShowAll dialog
 
+-- | Function handling license for about dialog
 license :: String
 license = "PowerCom is free software: you can redistribute it and/or modify\n\
 \it under the terms of the GNU General Public License as published by\n\
@@ -57,14 +60,23 @@ license = "PowerCom is free software: you can redistribute it and/or modify\n\
 \You should have received a copy of the GNU General Public License\n\
 \along with PowerCom.  If not, see <http://www.gnu.org/licenses/>."
 
-saveAction :: IORef (Maybe String) -> GuiApi -> IO ()
+-- | Callback on \"save\" button. If user already
+-- have selected file name, the save as dialog
+-- will not be shown. 
+saveAction :: IORef (Maybe String) -- ^ Information about last dialogs call. 
+  -> GuiApi -- ^ Api to access chat content.
+  -> IO ()
 saveAction lastSaveRef api = do 
     lastSave <- readIORef lastSaveRef 
     case lastSave of 
         Nothing -> saveAsAction lastSaveRef api   
         Just fileName -> saveChatToFile fileName api 
 
-saveAsAction :: IORef (Maybe String) -> GuiApi -> IO ()
+-- | Callaback on \"save as\" button. This function
+-- caches file name in it's first parameter. 
+saveAsAction :: IORef (Maybe String) -- ^ Here file name is written after dialog is closed. 
+  -> GuiApi -- ^ Api to access chat content. 
+  -> IO ()
 saveAsAction lastSaveRef api = do 
     dialog <- newSaveDialog
     withFileChooserDo dialog $ \s -> do 
@@ -72,7 +84,12 @@ saveAsAction lastSaveRef api = do
         saveChatToFile s api
     widgetDestroy dialog 
 
-openAction :: IORef (Maybe String) -> TextView -> IO ()
+-- | Callback on \"open\" button. If first parameter
+-- carries file name (cached by other dialogs), then
+-- the file is opened without showing open dialog.
+openAction :: IORef (Maybe String) -- ^ Information about last dialogs call. 
+  -> TextView -- ^ Chat to fill with contents 
+  -> IO ()
 openAction lastSaveRef chatView = do 
     dialog <- newOpenDialog 
     withFileChooserDo dialog $ \s -> do
@@ -80,7 +97,11 @@ openAction lastSaveRef chatView = do
         loadChatFromFile chatView s
     widgetDestroy dialog 
 
-withFileChooserDo :: FileChooserDialog -> (String -> IO ()) -> IO () 
+-- | Wrapper for GTK filechooser.
+withFileChooserDo :: FileChooserDialog -- ^ Operating filechooser 
+  -> (String -> IO ()) -- ^ Action to perform after end of the dialog. 
+                       -- Action argument is file name that was choosed. 
+  -> IO () 
 withFileChooserDo dialog action = do 
     dialResponse <- dialogRun dialog
     case dialResponse of 
@@ -89,19 +110,28 @@ withFileChooserDo dialog action = do
             forM_ newFileNameOpt action
         _ -> return ()
 
+-- | Initialises \"save as\" dialog.
 newSaveDialog :: IO FileChooserDialog
 newSaveDialog = fileChooserDialogNew Nothing Nothing FileChooserActionSave [("Save", ResponseOk), ("Cancel", ResponseCancel)]
 
+-- | Initialises \"open\" dialog.
 newOpenDialog :: IO FileChooserDialog 
 newOpenDialog = fileChooserDialogNew Nothing Nothing FileChooserActionOpen [("Open", ResponseOk), ("Cancel", ResponseCancel)]
 
+-- | Saves chat contents to the file.
 saveChatToFile :: FilePath -> GuiApi -> IO ()
 saveChatToFile filename api = writeFile filename =<< getChatText api 
 
+-- | Writes file contents to the chat.
 loadChatFromFile :: TextView -> FilePath -> IO ()
 loadChatFromFile textView fileName = textViewSetText textView =<< readFile fileName
 
-initGui :: FilePath -> Maybe (String, String) -> GuiCallbacks -> IO (Window, ChannelOptions, GuiApi)
+-- | There gui is ctreated. You need to call \"runGui\" function 
+-- to actually start gui operating.
+initGui :: FilePath -- ^ Glad file name to load gui from 
+  -> Maybe (String, String) -- ^ Optional arguments: serial port name and user name 
+  -> GuiCallbacks -- ^ Callbacks to bind 
+  -> IO (Window, ChannelOptions, GuiApi) -- ^ Returns main window, initial options and api to communicate with the gui
 initGui gladeFile initArgs callbacks = do 
     initGUI
     builder <- builderNew
@@ -180,6 +210,8 @@ initGui gladeFile initArgs callbacks = do
 
     return (mainWindow, options, api)
             
+-- | Starts infinite loop with gui event handling and widget drawing. Blocks calling 
+-- thread until user exit. Special yielding is produced to not block other threads.
 runGui :: Window -> IO ()
 runGui mainWindow = do 
     -- Yielding GTK thread

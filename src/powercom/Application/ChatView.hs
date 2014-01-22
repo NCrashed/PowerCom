@@ -1,18 +1,15 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Application.ChatView
+-- Copyright   :  (c) Gushcha Anton 2013-2014
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
---
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
---
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+-- Widget for displaying user's messages. Includes colorful text.
+-----------------------------------------------------------------------------
 module Application.ChatView (
       initChatTextView
     , putUserMessage
@@ -27,7 +24,11 @@ import Data.Time
 import Data.Functor
 import System.Locale 
 
-putUserMessage :: TextView -> String -> String -> IO ()
+-- | Writes user message in the chat with auto-scrolling.
+putUserMessage :: TextView -- ^ Chat to write to 
+  -> String -- ^ User name to display in brackets
+  -> String -- ^ Message to display 
+  -> IO ()
 putUserMessage textView username msg = do 
     timeStr <- formatTime defaultTimeLocale "%T" <$> getCurrentTime
     buffer <- textViewGetBuffer textView
@@ -36,20 +37,29 @@ putUserMessage textView username msg = do
 
     textViewScrollToEnd textView
 
-putInfoMessage :: TextView -> String -> IO ()
+-- | Writes system message in the chat with auto-scrolling.
+-- Info messages displayed in blue color.
+putInfoMessage :: TextView -- ^ Chat to write to 
+  -> String -- ^ System message body 
+  -> IO ()
 putInfoMessage textView msg = do 
     buffer <- textViewGetBuffer textView
     bufferAddStringWithTag buffer (msg++"\n") "InfoColor"
 
     textViewScrollToEnd textView
 
-putErrorMessage :: TextView -> String -> IO ()
+-- | Writes system errors in the chat with auto-scrolling.
+-- Error messages displayed in red color.
+putErrorMessage :: TextView -- ^ Chat to write to 
+  -> String -- ^ System message body. 
+  -> IO ()
 putErrorMessage textView msg = do 
     buffer <- textViewGetBuffer textView
     bufferAddStringWithTag buffer (msg++"\n") "ErrorColor"
 
     textViewScrollToEnd textView
 
+-- | Scrolls down chat to the end.
 textViewScrollToEnd :: TextView -> IO ()
 textViewScrollToEnd textView = do 
     buffer <- textViewGetBuffer textView
@@ -57,7 +67,11 @@ textViewScrollToEnd textView = do
     textViewScrollToIter textView endIter 0.0 Nothing 
     return ()
 
-bufferAddStringWithTag :: TextBuffer -> String -> String -> IO ()
+-- | Wrapper to add tagges string into textbuffer.
+bufferAddStringWithTag :: TextBuffer -- ^ Text buffer to add to 
+  -> String -- ^ String to add 
+  -> String -- ^ Tag name. The tag should be created before the call. 
+  -> IO ()
 bufferAddStringWithTag buffer string tagName =  do 
     oldEnd <- textBufferGetEndIter buffer
     line <- textIterGetLine oldEnd
@@ -71,6 +85,7 @@ bufferAddStringWithTag buffer string tagName =  do
 
     return ()
 
+-- | Returns contents of the chat.
 textViewGetAllText :: TextView -> IO String 
 textViewGetAllText textView = do 
     buffer <- textViewGetBuffer textView 
@@ -78,18 +93,22 @@ textViewGetAllText textView = do
     endIter <- textBufferGetEndIter buffer 
     textBufferGetText buffer beginIter endIter True
 
+-- | Clear contents of the chat. Tags are not deleted.
 bufferDeleteAllText :: TextBuffer -> IO ()
 bufferDeleteAllText buffer = do 
     beginIter <- textBufferGetStartIter buffer 
     endIter <- textBufferGetEndIter buffer 
     textBufferDelete buffer beginIter endIter 
 
+-- | Rewrites contents of the chat.
 textViewSetText :: TextView -> String -> IO ()
 textViewSetText textView text = do 
     buffer <- textViewGetBuffer textView 
     bufferDeleteAllText buffer 
     bufferAddStringWithTag buffer text "HistoryColor"
 
+-- | Creates chat. Requires text view in glade file with name "MessageArea".
+-- This function creates buffer and tags for highlighting.
 initChatTextView :: Builder -> IO TextView
 initChatTextView builder = do 
     textView <- builderGetObject builder castToTextView "MessageArea"

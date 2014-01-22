@@ -1,18 +1,47 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Application.Layer
+-- Copyright   :  (c) Gushcha Anton 2013-2014
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
+-- Module defines application layer of the application. It is the top layer
+-- in application structure. The layer uses following messages to communicate
+-- with channel layer:
+-- 
+-- * incoming \"exit\" - is sent from gui thread (same level), initializes recursive 
+-- shutdown protocol.
 --
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
+-- * incoming \"message\" - is sent from channel layer. Indicates that other user 
+-- sent a message. Holds username and contents.
 --
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+-- * incoming \"info\" - is sent from channel layer and informing about internal events.
+--
+-- * incoming \"error\" - is sent from channel layer and informing about important errors.
+--
+-- * incoming \"options\" - is sent from channel layer. Holds new options to set in gui.
+--
+-- * incoming \"connect\" - is sent from channel layer. Indicates about connecting of a new user,
+-- holds username.
+--
+-- * incoming \"disconnect\" - is sent from channel layer. Indicates about disconnecting of a user,
+-- holds username.
+--
+-- * outgoing \"exit\" -- is sent to channel layer when terminating protocol is triggered.
+--
+-- * outgoing \"send\" -- is sent to channel layer when the user finishes to chat a message. Holds only
+-- message body.
+--
+-- * outgoing \"connect\" -- is sent to channel layer when the user presses connecting button.
+--
+-- * outgoing \"disconnect\" -- is sent to channel layer when the user presses disconnecting button.
+--
+-- * outgoing \"options\" -- is sent to channel layer when the user finishes changing serial port options 
+-- (or user name changes).
+-----------------------------------------------------------------------------
 module Application.Layer (
     initApplicationLayer
     ) where
@@ -28,6 +57,8 @@ import Control.Distributed.Process
 import Control.Monad (forever)
 import Control.Concurrent (yield)
 
+-- | Application events that are listened. The events are connecting
+-- gui callbacks and process monad.
 data AppEvents = 
     AppEvents
     {
@@ -37,6 +68,7 @@ data AppEvents =
     , optionChangedEvent :: Event (ChannelOptions, ChannelOptions)
     }
 
+-- | Application event initialization.
 initAppEvents :: IO AppEvents
 initAppEvents = do 
     sendEvent'             <- initEvent ""
@@ -53,6 +85,7 @@ initAppEvents = do
         , optionChangedEvent = optionChangedEvent'
         }
 
+-- | Transforms application event to callbacks that rises the events.
 callbacks :: AppEvents -> GuiCallbacks
 callbacks events = 
     GuiCallbacks {
@@ -76,37 +109,47 @@ callbacks events =
 
                  }
 
+-- | Handler for incoming user message.
 printUserMessage :: GuiApi -> (ProcessId, String, String, String) -> Process Bool
 printUserMessage api (_, _, user, msg) = do 
     liftIO $ printMessage api user msg 
     return True
 
+-- | Handler for incoming system info message.
 printInfoMessage :: GuiApi -> (ProcessId, String, String) -> Process Bool
 printInfoMessage api (_, _, msg) = do 
     liftIO $ printInfo api msg 
     return True
 
+-- | Handler for incoming system error message.
 printErrorMessage :: GuiApi -> (ProcessId, String, String) -> Process Bool
 printErrorMessage api (_, _, msg) = do 
     liftIO $ printError api msg 
     return True
 
+-- | Handler for incoming serial port options changes.
 setupOptionsHandler :: GuiApi -> (ProcessId, String, ChannelOptions) -> Process Bool
 setupOptionsHandler api (_, _, options) = do 
     liftIO $ setupOptions api options 
     return True 
 
+-- | Handler for incoming remote connecting event. 
 userConnectHandler :: GuiApi -> (ProcessId, String, String) -> Process Bool
 userConnectHandler api (_, _, name) = do 
     liftIO $ addUser api name
     return True 
 
+-- | Handler for incoming remote disconnecting event.
 userDisconnectHandler :: GuiApi -> (ProcessId, String, String) -> Process Bool
 userDisconnectHandler api (_, _, name) = do 
     liftIO $ removeUser api name
     return True 
-    
-initApplicationLayer :: FilePath -> Maybe (String, String) -> ProcessId -> Process ()
+
+-- | Initializes application layer.    
+initApplicationLayer :: FilePath -- ^ Glade file name to load gui from 
+  -> Maybe (String, String) -- ^ Optional arguments: serial port name and defualt user name. 
+  -> ProcessId -- ^ Parent layer id, for application layer root is is Main thread. 
+  -> Process ()
 initApplicationLayer gladeFile args rootId = do 
     spawnLocal $ do
 
