@@ -1,18 +1,17 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Application.UserList
+-- Copyright   :  (c) Gushcha Anton 2013-2014
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
---
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
---
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+-- Module contains function to operate with user list widget. User list
+-- contains names of connected users, if two users have equal names, then
+-- users are equal. 
+-----------------------------------------------------------------------------
 module Application.UserList (
       initUserList
     ) where
@@ -21,25 +20,35 @@ import Graphics.UI.Gtk
 import Data.List (elemIndex)
 import Control.Monad 
 
+-- | Resource name for user icon
 defaultUserIcon :: String 
 defaultUserIcon =  "comotron-user"
 
-addUserToList :: ListStore (String, String) -> String -> IO ()
+-- | Adds new user to the list. Does nothing
+-- if user is already in the list.
+addUserToList :: ListStore (String, String) -- ^ List model (icon, name)
+  -> String -- ^ User name to add
+  -> IO ()
 addUserToList store name = do
     list <- listStoreToList store 
     case elemIndex name $ map snd list of
         Just _  -> return ()
         Nothing -> void $ listStoreAppend store (defaultUserIcon, name)
 
-removeUserFromList :: ListStore (String, String) -> String -> IO ()
+-- | Removes user from the list. Does nothing if user is not in the list.
+removeUserFromList :: ListStore (String, String) -- ^ List model (icon, name)
+  -> String  -- ^ User name to remove
+  -> IO ()
 removeUserFromList store name = do 
     list <- listStoreToList store 
     case elemIndex name $ map snd list of
         Just i  -> listStoreRemove store i 
         Nothing -> return ()
 
-
-initUserList :: Builder -> String -> IO (TreeView, String -> IO (), String -> IO ())
+-- | Creates user list widget. Returns api functions to operate with the list.
+initUserList :: Builder -- ^ Builder to get widgets from
+  -> String -- ^ Local user name 
+  -> IO (String -> IO (), String -> IO ()) -- ^ Returns api functions for adding and removing users from the list
 initUserList builder username = do
     treeView <- builderGetObject builder castToTreeView "UserListView"
     store <- listStoreNew [(defaultUserIcon, username)]
@@ -48,4 +57,4 @@ initUserList builder username = do
     treeModelSetColumn store (makeColumnIdString 1) snd 
     treeViewSetModel treeView store 
 
-    return (treeView, addUserToList store, removeUserFromList store)
+    return (addUserToList store, removeUserFromList store)

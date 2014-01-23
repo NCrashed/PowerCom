@@ -183,7 +183,7 @@ initGui gladeFile initArgs callbacks = do
     onToolButtonClicked disconnectButton $ disconnectCallback callbacks
 
     -- User list
-    (_, addUser', removeUser') <- initUserList builder (userName options)
+    (addUser', removeUser') <- initUserList builder (userName options)
 
     let api = GuiApi {
               printMessage = putUserMessage     chatTextView

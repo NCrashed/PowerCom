@@ -1,18 +1,17 @@
--- Copyright 2013 Gushcha Anton 
--- This file is part of PowerCom.
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Application.OptionDialog
+-- Copyright   :  (c) Gushcha Anton 2013-2014
+-- License     :  GNU GPLv3 (see the file LICENSE)
+-- 
+-- Maintainer  :  ncrashed@gmail.com
+-- Stability   :  experimental
+-- Portability :  portable
 --
---    PowerCom is free software: you can redistribute it and/or modify
---    it under the terms of the GNU General Public License as published by
---    the Free Software Foundation, either version 3 of the License, or
---    (at your option) any later version.
---
---    PowerCom is distributed in the hope that it will be useful,
---    but WITHOUT ANY WARRANTY; without even the implied warranty of
---    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---    GNU General Public License for more details.
---
---    You should have received a copy of the GNU General Public License
---    along with PowerCom.  If not, see <http://www.gnu.org/licenses/>.
+-- Module holds function to work with options dialog. It is handles automatic
+-- options deconstructing to setup needed comboboxes when new options are arrived
+-- from remote side.
+-----------------------------------------------------------------------------
 module Application.OptionDialog (
       setupOptionDialog
     , defaultOptions
@@ -35,7 +34,7 @@ import Data.Maybe
 import Channel.Options
 import Physical.Detector 
 
--- |Fills combo with list of showable values and return function to
+-- | Fills combo with list of showable values and return function to
 -- matching that values with combo elements 
 createEnumCombo :: (Eq a) => ComboBox         -- ^ Combo box to fill
     -> (a -> String)                          -- ^ Function to map elem into string, show for instance
@@ -55,11 +54,14 @@ data OptionMappings = OptionMappings
     , portWordMapping :: Word8     -> Maybe Int
     }
 
+-- | If optional arguments are passed to program, then uses them to fill
+-- default serial port name and user name.
 defaultOptionsWithArgs :: Maybe (String, String) -> ChannelOptions
 defaultOptionsWithArgs args = case args of 
     Nothing -> defaultOptions 
     Just (portname, username) -> defaultOptions { portName = portname, userName = username}
 
+-- | Retrieves from glade builder all needed gui elements to operate over options fields.
 getOptionElements :: Builder -> IO (ComboBox, Entry, ComboBox, ComboBox, ComboBox, ComboBox)
 getOptionElements builder = (,,,,,) <$> 
     getComboBox "PortNameCombo" <*>
@@ -72,8 +74,11 @@ getOptionElements builder = (,,,,,) <$>
         getEntry     = builderGetObject builder castToEntry
         getComboBox  = builderGetObject builder castToComboBox
                 
-        
-setupGuiOptions :: Builder -> OptionMappings -> ChannelOptions -> IO ChannelOptions
+-- | Fills gui elements with options fields.          
+setupGuiOptions :: Builder -- ^ Builder to get gui elements 
+  -> OptionMappings -- ^ Mappings from option values to gui elements inner indexes 
+  -> ChannelOptions -- ^ Options values to get data from 
+  -> IO ()
 setupGuiOptions builder mappings options = do
     (_,userNameEntry,speedCombo,stopBitCombo,parityBitCombo,wordBitCombo) <- getOptionElements builder
 
@@ -84,9 +89,7 @@ setupGuiOptions builder mappings options = do
     comboBoxSetActive parityBitCombo $ fromMaybe 0 $ parityMapping mappings $ portParityBits options
     comboBoxSetActive wordBitCombo   $ fromMaybe 0 $ portWordMapping mappings $ portWordBits options
 
-    return options
-
-
+-- | Collects options values from gui elements. 
 collectOptions :: Builder -> IO ChannelOptions
 collectOptions builder = do 
     (portNameCombo,userNameEntry,speedCombo,stopBitCombo,parityBitCombo,wordBitCombo) 
@@ -119,7 +122,12 @@ collectOptions builder = do
             "" -> 7
             _  -> read s :: Word8
 
-setupOptionDialog :: Builder -> GuiCallbacks -> Maybe (String, String) -> IO (IORef ChannelOptions, ChannelOptions -> IO ())
+-- | Creates option dialogs. Fills dialog with default options values and 
+-- calculates appropriate mappings between options values and gui elements inner indexes.
+setupOptionDialog :: Builder -- ^ GUI builder to get elements from 
+  -> GuiCallbacks -- ^ Gui callbacks to use 
+  -> Maybe (String, String) -- ^ Optional arguments containing default serial port name and user name
+  -> IO (IORef ChannelOptions, ChannelOptions -> IO ()) -- ^ Returns reference to current options contained in gui and API function to set up new options
 setupOptionDialog builder callbacks initArgs = do
     optionDialog <- builderGetObject builder castToDialog "OptionDialog" 
     optionDialog `set` [windowDeletable := False]
@@ -159,9 +167,10 @@ setupOptionDialog builder callbacks initArgs = do
             , portWordMapping = wordBitMatch
             } 
     -- Setup options
-    initOptions <- setupGuiOptions builder mappings $ defaultOptionsWithArgs initArgs
+    let initOptions = defaultOptionsWithArgs initArgs
     options <- newIORef initOptions
-
+    setupGuiOptions builder mappings initOptions 
+    
     -- OptionDialog item
     optionItem <- builderGetObject builder castToMenuItem "OptionItem"
     optionItem `on` menuItemActivate $ widgetShowAll optionDialog
